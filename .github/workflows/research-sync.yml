@@ -43,6 +43,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_zenodo && 'zenodo-production' || 'zenodo-sandbox' }}
+    env:
+      TARGET_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_zenodo && 'zenodo-production' || 'zenodo-sandbox' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +52,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+
+      - name: Validate Zenodo environment configuration
+        shell: bash
+        env:
+          ZENODO_ACCESS_TOKEN: ${{ secrets.ZENODO_ACCESS_TOKEN }}
+          ZENODO_BASE_URL: ${{ vars.ZENODO_BASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$ZENODO_ACCESS_TOKEN" || {
+            echo "Missing environment secret: ZENODO_ACCESS_TOKEN in ${TARGET_ENVIRONMENT}." >&2
+            exit 1
+          }
+          test -n "$ZENODO_BASE_URL" || {
+            echo "Missing environment variable: ZENODO_BASE_URL in ${TARGET_ENVIRONMENT}." >&2
+            exit 1
+          }
+
+          if [[ "$TARGET_ENVIRONMENT" == "zenodo-sandbox" && "$ZENODO_BASE_URL" != "https://sandbox.zenodo.org/api" ]]; then
+            echo "zenodo-sandbox must use https://sandbox.zenodo.org/api" >&2
+            exit 1
+          fi
+
+          if [[ "$TARGET_ENVIRONMENT" == "zenodo-production" && "$ZENODO_BASE_URL" != "https://zenodo.org/api" ]]; then
+            echo "zenodo-production must use https://zenodo.org/api" >&2
+            exit 1
+          fi
 
       - name: Create Zenodo draft, upload files, and optionally publish
         env:
@@ -59,11 +87,28 @@ jobs:
           RESEARCH_UPLOAD_DIR: uploads
         run: node scripts/zenodo-sync.mjs
 
+      - name: Ensure a result report exists
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [[ ! -f dist/zenodo-result.json ]]; then
+            jq -n \
+              --arg status "failed-before-result" \
+              --arg environment "$TARGET_ENVIRONMENT" \
+              --arg run_id "$GITHUB_RUN_ID" \
+              --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+              '{status: $status, environment: $environment, run_id: $run_id, run_attempt: $run_attempt, published: false}' \
+              > dist/zenodo-result.json
+          fi
+
       - name: Upload Zenodo result
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: zenodo-result-${{ github.run_id }}
           path: dist/zenodo-result.json
+          if-no-files-found: error
           retention-days: 30
 
   verify:
@@ -79,7 +124,9 @@ jobs:
           ORCID_API_BASE: ${{ vars.ORCID_API_BASE }}
           CROSSREF_API_BASE: ${{ vars.CROSSREF_API_BASE }}
           CROSSREF_MAILTO: ${{ vars.CROSSREF_MAILTO }}
+          OPENAIRE_API_BASE: ${{ vars.OPENAIRE_API_BASE }}
         run: |
           echo "ORCID public record: ${ORCID_API_BASE}/${ORCID_ID}"
           echo "Crossref API: ${CROSSREF_API_BASE}"
           echo "Crossref polite-pool contact configured: $([ -n "$CROSSREF_MAILTO" ] && echo yes || echo no)"
+          echo "OpenAIRE API: ${OPENAIRE_API_BASE}"
