@@ -1,23 +1,42 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
 
 const token = process.env.ZENODO_ACCESS_TOKEN;
 const base = process.env.ZENODO_BASE_URL || "https://sandbox.zenodo.org/api";
 const publish = process.env.PUBLISH_ZENODO === "true";
+const uploadRoot = process.env.RESEARCH_UPLOAD_DIR || "uploads";
 
 if (!token) {
   throw new Error("ZENODO_ACCESS_TOKEN is required.");
 }
 
 const source = JSON.parse(fs.readFileSync("metadata/research.json", "utf8"));
-const headers = {
+const jsonHeaders = {
   Authorization: `Bearer ${token}`,
   "Content-Type": "application/json"
 };
+const authHeaders = { Authorization: `Bearer ${token}` };
 
-async function request(url, options = {}) {
+function collectFiles(directory) {
+  if (!fs.existsSync(directory)) return [];
+
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) return collectFiles(fullPath);
+    if (entry.name === "README.md" || entry.name === ".gitkeep") return [];
+    return [fullPath];
+  });
+}
+
+function sha256(filePath) {
+  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
+
+async function requestJson(url, options = {}) {
   const response = await fetch(url, {
     ...options,
-    headers: { ...headers, ...(options.headers || {}) }
+    headers: { ...jsonHeaders, ...(options.headers || {}) }
   });
   const body = await response.text();
   if (!response.ok) {
@@ -26,7 +45,12 @@ async function request(url, options = {}) {
   return body ? JSON.parse(body) : {};
 }
 
-const deposit = await request(`${base}/deposit/depositions`, {
+const files = collectFiles(uploadRoot);
+if (files.length === 0) {
+  throw new Error(`No research files found in ${uploadRoot}/.`);
+}
+
+const deposit = await requestJson(`${base}/deposit/depositions`, {
   method: "POST",
   body: "{}"
 });
@@ -47,23 +71,52 @@ const metadata = {
   }
 };
 
-const updated = await request(`${base}/deposit/depositions/${deposit.id}`, {
+const updated = await requestJson(`${base}/deposit/depositions/${deposit.id}`, {
   method: "PUT",
   body: JSON.stringify(metadata)
 });
+
+const bucketUrl = updated.links?.bucket || deposit.links?.bucket;
+if (!bucketUrl) {
+  throw new Error("Zenodo did not return an upload bucket URL.");
+}
+
+const uploadedFiles = [];
+for (const filePath of files) {
+  const filename = path.basename(filePath);
+  const target = `${bucketUrl}/${encodeURIComponent(filename)}`;
+  const response = await fetch(target, {
+    method: "PUT",
+    headers: authHeaders,
+    body: fs.readFileSync(filePath)
+  });
+  const body = await response.text();
+  if (!response.ok) {
+    throw new Error(`File upload failed for ${filename}: ${response.status} ${body}`);
+  }
+  const remote = body ? JSON.parse(body) : {};
+  uploadedFiles.push({
+    local_path: filePath,
+    filename,
+    size: fs.statSync(filePath).size,
+    sha256: sha256(filePath),
+    zenodo_checksum: remote.checksum || null
+  });
+}
 
 const result = {
   deposition_id: updated.id,
   reserved_doi: updated.metadata?.prereserve_doi?.doi ?? null,
   html_url: updated.links?.html ?? null,
   state: updated.state,
+  files: uploadedFiles,
   published: false
 };
 
 if (publish) {
-  const published = await request(
+  const published = await requestJson(
     `${base}/deposit/depositions/${deposit.id}/actions/publish`,
-    { method: "POST" }
+    { method: "POST", headers: authHeaders }
   );
   result.published = true;
   result.doi = published.doi ?? null;
