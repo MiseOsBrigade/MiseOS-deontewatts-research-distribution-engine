@@ -1,0 +1,73 @@
+name: Research Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_zenodo:
+        description: "Publish the Zenodo record permanently"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate research metadata
+        run: node scripts/validate-metadata.mjs
+
+  zenodo:
+    runs-on: ubuntu-latest
+    needs: validate
+    environment: ${{ inputs.publish_zenodo && 'zenodo-production' || 'zenodo-sandbox' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Create Zenodo draft or publish
+        env:
+          ZENODO_ACCESS_TOKEN: ${{ secrets.ZENODO_ACCESS_TOKEN }}
+          ZENODO_BASE_URL: ${{ vars.ZENODO_BASE_URL }}
+          PUBLISH_ZENODO: ${{ inputs.publish_zenodo }}
+        run: node scripts/zenodo-sync.mjs
+
+      - name: Upload Zenodo result
+        uses: actions/upload-artifact@v4
+        with:
+          name: zenodo-result
+          path: dist/zenodo-result.json
+
+  verify:
+    runs-on: ubuntu-latest
+    needs: zenodo
+    if: ${{ always() }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Document verification endpoints
+        env:
+          ORCID_ID: ${{ vars.ORCID_ID }}
+          ORCID_API_BASE: ${{ vars.ORCID_API_BASE }}
+          CROSSREF_API_BASE: ${{ vars.CROSSREF_API_BASE }}
+          CROSSREF_MAILTO: ${{ vars.CROSSREF_MAILTO }}
+        run: |
+          echo "ORCID public record: ${ORCID_API_BASE}/${ORCID_ID}"
+          echo "Crossref API: ${CROSSREF_API_BASE}"
+          echo "Crossref polite-pool contact configured: $([ -n "$CROSSREF_MAILTO" ] && echo yes || echo no)"
