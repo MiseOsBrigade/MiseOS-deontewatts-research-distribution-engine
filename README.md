@@ -84,15 +84,28 @@ The script creates both GitHub Environments, sets repository and environment var
 
 ## First Sandbox validation run
 
-After the new Sandbox secret is installed:
+After the new Sandbox secret is installed, open **Actions → Queue Sandbox Validation → Run workflow**.
 
-1. Add one binary test file under `uploads/`.
-2. Replace placeholder values in `metadata/research.json` with the validation record metadata.
-3. Commit and push both changes together.
-4. Open **Actions → Research Sync**.
-5. Confirm the run selected `zenodo-sandbox`.
-6. Download and inspect the `zenodo-result-<run-id>` artifact.
-7. Confirm the result includes the Sandbox deposition ID, reserved DOI, draft URL, uploaded filename, byte size, SHA-256 value, and `published: false`.
+That workflow will:
+
+1. Verify the `zenodo-sandbox` secret and base URL are present.
+2. Generate `uploads/zenodo-sandbox-validation.bin` as a deterministic binary payload.
+3. Update `metadata/research.json` with validation metadata.
+4. Validate the metadata.
+5. Commit and push both files together.
+6. Trigger **Research Sync** automatically through the existing path filters.
+
+Then open **Actions → Research Sync** and inspect the `zenodo-result-<run-id>` artifact. A successful result should include the Sandbox deposition ID, reserved DOI, draft URL, uploaded filename, byte size, SHA-256 value, and `published: false`.
+
+The equivalent local path is:
+
+```bash
+node scripts/queue-sandbox-validation.mjs
+node scripts/validate-metadata.mjs
+git add uploads/zenodo-sandbox-validation.bin metadata/research.json
+git commit -m "test: queue Zenodo Sandbox validation deposit"
+git push
+```
 
 ## Local validation
 
