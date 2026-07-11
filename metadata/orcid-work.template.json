@@ -1,0 +1,20 @@
+{
+  "title": {
+    "title": {
+      "value": "{{TITLE}}"
+    }
+  },
+  "type": "other",
+  "external-ids": {
+    "external-id": [
+      {
+        "external-id-type": "doi",
+        "external-id-value": "{{DOI}}",
+        "external-id-relationship": "self"
+      }
+    ]
+  },
+  "url": {
+    "value": "{{ZENODO_RECORD_URL}}"
+  }
+}
