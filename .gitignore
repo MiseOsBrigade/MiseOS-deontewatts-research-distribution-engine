@@ -1,7 +1,89 @@
+# Environment files and local overrides
 .env
 .env.*
 !.env.example
+*.env
+*.env.*
+
+# Secrets and credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.jks
+*.keystore
+*.secret
+*.secrets
+secrets/
+.secret/
+credentials/
+credentials.json
+service-account*.json
+client-secret*.json
+oauth*.json
+token*.json
+
+# Registry and package-manager auth
+.npmrc
+.yarnrc
+.yarnrc.yml
+.pnpmrc
+pip.conf
+.pypirc
+.netrc
+.docker/config.json
+.registry/
+registry-auth.json
+
+# Cloud and platform credentials
+.aws/
+.azure/
+.gcloud/
+.vercel/
+.wrangler/
+.devcontainer/.env
+.codesandbox/secrets*
+.sandbox/secrets*
+
+# Local application state
+.local/
+.cache/
+.tmp/
+tmp/
+temp/
+
+# Generated outputs and artifacts
 dist/
-node_modules/
+build/
+out/
+coverage/
+artifacts/
+reports/
 *.log
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Editor and OS files
 .DS_Store
+Thumbs.db
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Uploaded research staging files that may contain private material
+uploads/private/
+uploads/staging/
+uploads/*.secret
+uploads/*.token
+
+# Keep safe templates and documentation
+!.env.example
+!uploads/README.md
