@@ -1,0 +1,21 @@
+{
+  "title": "Research Title",
+  "creators": [
+    {
+      "name": "Watts, Deonte",
+      "orcid": "0009-0005-8586-3650"
+    }
+  ],
+  "description": "Replace with a concise abstract.",
+  "keywords": [
+    "open research",
+    "research documentation",
+    "scientific communication"
+  ],
+  "license": "cc-by-4.0",
+  "upload_type": "publication",
+  "publication_type": "technicalnote",
+  "publication_date": "2026-07-11",
+  "access_right": "open",
+  "related_identifiers": []
+}
