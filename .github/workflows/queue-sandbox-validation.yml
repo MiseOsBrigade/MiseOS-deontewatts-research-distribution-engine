@@ -1,0 +1,68 @@
+name: Queue Sandbox Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: queue-sandbox-validation
+  cancel-in-progress: false
+
+jobs:
+  queue:
+    runs-on: ubuntu-latest
+    environment: zenodo-sandbox
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Confirm Sandbox configuration exists
+        shell: bash
+        env:
+          ZENODO_ACCESS_TOKEN: ${{ secrets.ZENODO_ACCESS_TOKEN }}
+          ZENODO_BASE_URL: ${{ vars.ZENODO_BASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$ZENODO_ACCESS_TOKEN" || {
+            echo "Install ZENODO_ACCESS_TOKEN in the zenodo-sandbox environment first." >&2
+            exit 1
+          }
+          test "$ZENODO_BASE_URL" = "https://sandbox.zenodo.org/api" || {
+            echo "Set zenodo-sandbox variable ZENODO_BASE_URL=https://sandbox.zenodo.org/api first." >&2
+            exit 1
+          }
+
+      - name: Generate binary payload and validation metadata
+        run: node scripts/queue-sandbox-validation.mjs
+
+      - name: Validate metadata
+        run: node scripts/validate-metadata.mjs
+
+      - name: Commit the validation release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add uploads/zenodo-sandbox-validation.bin metadata/research.json
+
+          if git diff --cached --quiet; then
+            echo "The validation payload is already current; no commit was needed."
+            exit 0
+          fi
+
+          git commit -m "test: queue Zenodo Sandbox validation deposit"
+          git push origin HEAD:${GITHUB_REF_NAME}
+
+      - name: Explain automatic follow-up
+        run: |
+          echo "The commit changes uploads/** and metadata/research.json."
+          echo "Research Sync will start automatically and use zenodo-sandbox."
