@@ -1,0 +1,19 @@
+{
+  "mode": "sequential",
+  "environment": "zenodo-sandbox",
+  "publication_enabled": false,
+  "current_record_id": null,
+  "records": [
+    {"record_id":"mobius-unitary-positivity","status":"blocked_pending_binary_attachment","position":1},
+    {"record_id":"mobius-weil-li-rh-program","status":"blocked_pending_binary_attachment","position":2},
+    {"record_id":"mirror-coupling-dark-sector","status":"blocked_pending_binary_attachment","position":3},
+    {"record_id":"one-unseen-component","status":"blocked_pending_binary_attachment","position":4}
+  ],
+  "rules": {
+    "max_active_records": 1,
+    "require_manifest_validation": true,
+    "require_checksum_match": true,
+    "orcid_enrichment_after_reserved_doi": true,
+    "orcid_write_back_requires_approval": true
+  }
+}
