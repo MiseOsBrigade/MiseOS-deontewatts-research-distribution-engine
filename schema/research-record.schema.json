@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MiseOsBrigade/MiseOS-deontewatts-research-distribution-engine/schema/research-record.schema.json",
+  "title": "Research Distribution Record",
+  "type": "object",
+  "required": ["id", "kind", "title", "creators", "files", "distribution", "created_at", "updated_at"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{5,80}$"},
+    "kind": {"enum": ["publication", "dataset", "software", "presentation", "other"]},
+    "title": {"type": "string", "minLength": 1},
+    "description": {"type": "string"},
+    "creators": {"type": "array", "minItems": 1},
+    "files": {"type": "array", "minItems": 1},
+    "source": {"type": "object"},
+    "identifiers": {"type": "object"},
+    "distribution": {"type": "object"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": true
+}
