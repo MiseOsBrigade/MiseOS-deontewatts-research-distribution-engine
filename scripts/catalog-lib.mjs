@@ -1,0 +1,54 @@
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+
+export const INDEX_PATH = "data/research-index.json";
+
+export function readJson(filePath, fallback = null) {
+  if (!fs.existsSync(filePath)) return fallback;
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+export function writeJson(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+export function slugify(value) {
+  return value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "record";
+}
+
+export function createRecordId(title, seed = "") {
+  const digest = crypto.createHash("sha256").update(`${title}\n${seed}`).digest("hex").slice(0, 10);
+  return `${new Date().toISOString().slice(0, 10)}-${slugify(title)}-${digest}`;
+}
+
+export function sha256(filePath) {
+  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
+
+export function upsertIndexRecord(summary) {
+  const index = readJson(INDEX_PATH, { schema_version: "1.0.0", updated_at: new Date().toISOString(), records: [] });
+  const position = index.records.findIndex((record) => record.id === summary.id);
+  if (position >= 0) index.records[position] = { ...index.records[position], ...summary };
+  else index.records.push(summary);
+  index.records.sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
+  index.updated_at = new Date().toISOString();
+  writeJson(INDEX_PATH, index);
+  return index;
+}
+
+export function recordSummary(record) {
+  return {
+    id: record.id,
+    kind: record.kind,
+    title: record.title,
+    creators: record.creators,
+    identifiers: record.identifiers || {},
+    source: record.source || {},
+    distribution: record.distribution || {},
+    record_path: `records/${record.id}/record.json`,
+    created_at: record.created_at,
+    updated_at: record.updated_at
+  };
+}
