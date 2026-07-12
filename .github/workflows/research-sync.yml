@@ -2,19 +2,20 @@ name: Research Sync
 
 on:
   push:
+    branches: [main]
     paths:
       - "uploads/**"
       - "metadata/research.json"
   workflow_dispatch:
     inputs:
       publish_zenodo:
-        description: "Publish the Zenodo record permanently"
+        description: "Publish the queued Zenodo record permanently"
         required: true
         type: boolean
         default: false
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: research-sync-${{ github.ref }}
@@ -24,20 +25,14 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
-
-      - name: Validate research metadata
-        run: node scripts/validate-metadata.mjs
-
-      - name: Confirm queued files
+      - name: Validate metadata and one-record queue
         run: |
-          count=$(find uploads -type f ! -name README.md ! -name .gitkeep | wc -l | tr -d ' ')
-          test "$count" -gt 0 || { echo "No research files are queued in uploads/."; exit 1; }
-          echo "Queued research files: $count"
+          node scripts/validate-metadata.mjs
+          node scripts/validate-queue.mjs
 
   zenodo:
     runs-on: ubuntu-latest
@@ -47,9 +42,10 @@ jobs:
       TARGET_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_zenodo && 'zenodo-production' || 'zenodo-sandbox' }}
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
@@ -60,32 +56,55 @@ jobs:
           ZENODO_BASE_URL: ${{ vars.ZENODO_BASE_URL }}
         run: |
           set -euo pipefail
-          test -n "$ZENODO_ACCESS_TOKEN" || {
-            echo "Missing environment secret: ZENODO_ACCESS_TOKEN in ${TARGET_ENVIRONMENT}." >&2
-            exit 1
-          }
-          test -n "$ZENODO_BASE_URL" || {
-            echo "Missing environment variable: ZENODO_BASE_URL in ${TARGET_ENVIRONMENT}." >&2
-            exit 1
-          }
-
+          test -n "$ZENODO_ACCESS_TOKEN" || { echo "Missing environment secret: ZENODO_ACCESS_TOKEN in ${TARGET_ENVIRONMENT}." >&2; exit 1; }
+          test -n "$ZENODO_BASE_URL" || { echo "Missing environment variable: ZENODO_BASE_URL in ${TARGET_ENVIRONMENT}." >&2; exit 1; }
           if [[ "$TARGET_ENVIRONMENT" == "zenodo-sandbox" && "$ZENODO_BASE_URL" != "https://sandbox.zenodo.org/api" ]]; then
             echo "zenodo-sandbox must use https://sandbox.zenodo.org/api" >&2
             exit 1
           fi
-
           if [[ "$TARGET_ENVIRONMENT" == "zenodo-production" && "$ZENODO_BASE_URL" != "https://zenodo.org/api" ]]; then
             echo "zenodo-production must use https://zenodo.org/api" >&2
             exit 1
           fi
 
-      - name: Create Zenodo draft, upload files, and optionally publish
+      - name: Create Zenodo draft, upload queued file, and optionally publish
         env:
           ZENODO_ACCESS_TOKEN: ${{ secrets.ZENODO_ACCESS_TOKEN }}
           ZENODO_BASE_URL: ${{ vars.ZENODO_BASE_URL }}
           PUBLISH_ZENODO: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_zenodo || false }}
-          RESEARCH_UPLOAD_DIR: uploads
         run: node scripts/zenodo-sync.mjs
+
+      - name: Persist Zenodo result in the catalog
+        run: node scripts/update-distribution.mjs dist/zenodo-result.json
+
+      - name: Run ORCID enrichment after DOI reservation
+        continue-on-error: true
+        env:
+          ORCID_ID: ${{ vars.ORCID_ID }}
+          ORCID_API_BASE: ${{ vars.ORCID_API_BASE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if jq -e '.reserved_doi != null and .reserved_doi != ""' dist/zenodo-result.json >/dev/null; then
+            node scripts/orcid-enrich.mjs
+          else
+            echo "No reserved DOI; ORCID enrichment remains blocked."
+          fi
+
+      - name: Commit catalog state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/research-index.json records queue/current.json reports 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No catalog state changes to commit."
+          else
+            record_id=$(jq -r '.record_id' queue/current.json)
+            git commit -m "sync: record Zenodo state for ${record_id}"
+            git push origin HEAD:main
+          fi
 
       - name: Ensure a result report exists
         if: ${{ always() }}
@@ -116,8 +135,7 @@ jobs:
     needs: zenodo
     if: ${{ always() }}
     steps:
-      - uses: actions/checkout@v4
-
+      - uses: actions/checkout@v5
       - name: Document verification endpoints
         env:
           ORCID_ID: ${{ vars.ORCID_ID }}
