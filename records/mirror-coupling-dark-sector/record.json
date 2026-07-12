@@ -1,0 +1,20 @@
+{
+  "id": "mirror-coupling-dark-sector",
+  "kind": "publication",
+  "status": "draft",
+  "title": "The Mirror-Coupling Dark Sector Hypothesis",
+  "description": "Hypothesis preprint with journal, ebook, source, and metadata supplements. Draft only.",
+  "creators": [{"name": "Deonte Watts", "orcid": "0009-0005-8586-3650"}],
+  "license": "CC-BY-4.0",
+  "files": [
+    {"role": "canonical", "name": "mcds_orcid_zenodo_package(1).zip", "path": "uploads/mirror-coupling-dark-sector/mcds_orcid_zenodo_package(1).zip", "sha256": "5444389a79da2ac11d856b748b191df16c84a3cfdc425ffc607a7713b4209f24", "size": 3121116, "attachment_status": "awaiting_binary_commit"},
+    {"role": "source-package", "name": "mcds_hypothesis_latex_ebook_journal_package(1).zip", "path": "uploads/mirror-coupling-dark-sector/mcds_hypothesis_latex_ebook_journal_package(1).zip", "sha256": "af80a2ba0a8333379b0a959d85b070ab6c15ba46c3f788c9fa0f94323748c762", "attachment_status": "awaiting_binary_commit"},
+    {"role": "metadata", "name": "mcds_datacite.xml", "path": "uploads/mirror-coupling-dark-sector/mcds_datacite.xml", "sha256": "0efd821731dc2f4a544e44b7aa9a467ca06889fe8bca9cd48cd9a139a18fb657", "attachment_status": "awaiting_binary_commit"},
+    {"role": "supplement", "name": "mcds_hypothesis_journal_submission.tex", "path": "uploads/mirror-coupling-dark-sector/mcds_hypothesis_journal_submission.tex", "sha256": "47c3505f977c0c90f34e37d7e582f01bc7db311baf9faccf0a631047d71bd343", "attachment_status": "awaiting_binary_commit"}
+  ],
+  "source": {"intake_issue": 7},
+  "identifiers": {"doi": null},
+  "distribution": {"zenodo": "not_queued", "orcid": "blocked_until_doi"},
+  "created_at": "2026-07-12T09:30:00.000Z",
+  "updated_at": "2026-07-12T09:30:00.000Z"
+}
