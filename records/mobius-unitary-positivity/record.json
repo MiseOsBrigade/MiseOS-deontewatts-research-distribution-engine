@@ -1,0 +1,15 @@
+{
+  "id": "mobius-unitary-positivity",
+  "kind": "publication",
+  "status": "draft",
+  "title": "Möbius-Unitary Positivity and Deranged Zero-Orbit Signatures in the Weil-Li Framework",
+  "description": "Preprint and reproducible research package. Draft only; not queued for publication.",
+  "creators": [{"name": "Deonte Watts", "orcid": "0009-0005-8586-3650"}],
+  "license": "CC-BY-4.0",
+  "files": [{"role": "canonical", "name": "mobius_unitary_positivity_repo 2(1).zip", "path": "uploads/mobius-unitary-positivity/mobius_unitary_positivity_repo 2(1).zip", "sha256": "409093bef7a76b054f34de249a56e3c8b6d85ece402bc8ed1bc80025ad551fca", "size": 529076, "attachment_status": "awaiting_binary_commit"}],
+  "source": {"intake_issue": 7},
+  "identifiers": {"doi": null},
+  "distribution": {"zenodo": "not_queued", "orcid": "blocked_until_doi"},
+  "created_at": "2026-07-12T09:30:00.000Z",
+  "updated_at": "2026-07-12T09:30:00.000Z"
+}
