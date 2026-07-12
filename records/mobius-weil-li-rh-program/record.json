@@ -1,0 +1,17 @@
+{
+  "id": "mobius-weil-li-rh-program",
+  "kind": "publication",
+  "status": "draft",
+  "title": "Möbius-Weil-Li Positivity as a Scientific Research Program for the Riemann Hypothesis",
+  "description": "Research program and proof architecture; not a claimed proof of the Riemann Hypothesis. Draft only.",
+  "creators": [{"name": "Deonte Watts", "orcid": "0009-0005-8586-3650"}],
+  "files": [
+    {"role": "canonical", "name": "rh_mobius_weil_li_research_package(1).zip", "path": "uploads/mobius-weil-li-rh-program/rh_mobius_weil_li_research_package(1).zip", "sha256": "34c39a0df0f17b7b50bdfd6aa37dfe8fb7dd8abe0f8e433ed11f2217a9ab5836", "size": 730589, "attachment_status": "awaiting_binary_commit"},
+    {"role": "supplement", "name": "rh_mobius_weil_li_research_manuscript(1).pdf", "path": "uploads/mobius-weil-li-rh-program/rh_mobius_weil_li_research_manuscript(1).pdf", "sha256": "4c4c1edfb36ac20e945e79bebdb2395dc4fcd5fee27b150883e9acaea634e064", "attachment_status": "awaiting_binary_commit"}
+  ],
+  "source": {"intake_issue": 7},
+  "identifiers": {"doi": null},
+  "distribution": {"zenodo": "not_queued", "orcid": "blocked_until_doi"},
+  "created_at": "2026-07-12T09:30:00.000Z",
+  "updated_at": "2026-07-12T09:30:00.000Z"
+}
