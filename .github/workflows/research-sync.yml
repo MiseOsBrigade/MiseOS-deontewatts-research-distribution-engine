@@ -4,19 +4,17 @@ on:
   push:
     paths:
       - "uploads/**"
-      - "records/**"
-      - "queue/current.json"
       - "metadata/research.json"
   workflow_dispatch:
     inputs:
       publish_zenodo:
-        description: "Publish the queued Zenodo record permanently"
+        description: "Publish the Zenodo record permanently"
         required: true
         type: boolean
         default: false
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: research-sync-${{ github.ref }}
@@ -27,12 +25,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Validate queued catalog record
+
+      - name: Validate research metadata
+        run: node scripts/validate-metadata.mjs
+
+      - name: Confirm queued files
         run: |
-          node -e 'const fs=require("fs"); const q=JSON.parse(fs.readFileSync("queue/current.json")); if(!q.record_id||!q.metadata_path||!Array.isArray(q.files)||!q.files.length) throw new Error("Invalid queue"); if(!fs.existsSync(q.metadata_path)) throw new Error(`Missing ${q.metadata_path}`); for(const f of q.files) if(!fs.existsSync(f)) throw new Error(`Missing ${f}`); console.log(`Queued ${q.record_id}`);'
+          count=$(find uploads -type f ! -name README.md ! -name .gitkeep | wc -l | tr -d ' ')
+          test "$count" -gt 0 || { echo "No research files are queued in uploads/."; exit 1; }
+          echo "Queued research files: $count"
 
   zenodo:
     runs-on: ubuntu-latest
@@ -40,43 +45,63 @@ jobs:
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_zenodo && 'zenodo-production' || 'zenodo-sandbox' }}
     env:
       TARGET_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_zenodo && 'zenodo-production' || 'zenodo-sandbox' }}
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+
       - name: Validate Zenodo environment configuration
+        shell: bash
         env:
           ZENODO_ACCESS_TOKEN: ${{ secrets.ZENODO_ACCESS_TOKEN }}
           ZENODO_BASE_URL: ${{ vars.ZENODO_BASE_URL }}
         run: |
           set -euo pipefail
-          test -n "$ZENODO_ACCESS_TOKEN" || { echo "Missing ZENODO_ACCESS_TOKEN in ${TARGET_ENVIRONMENT}." >&2; exit 1; }
-          test -n "$ZENODO_BASE_URL" || { echo "Missing ZENODO_BASE_URL in ${TARGET_ENVIRONMENT}." >&2; exit 1; }
-          [[ "$TARGET_ENVIRONMENT" != "zenodo-sandbox" || "$ZENODO_BASE_URL" == "https://sandbox.zenodo.org/api" ]]
-          [[ "$TARGET_ENVIRONMENT" != "zenodo-production" || "$ZENODO_BASE_URL" == "https://zenodo.org/api" ]]
-      - name: Deposit queued record
+          test -n "$ZENODO_ACCESS_TOKEN" || {
+            echo "Missing environment secret: ZENODO_ACCESS_TOKEN in ${TARGET_ENVIRONMENT}." >&2
+            exit 1
+          }
+          test -n "$ZENODO_BASE_URL" || {
+            echo "Missing environment variable: ZENODO_BASE_URL in ${TARGET_ENVIRONMENT}." >&2
+            exit 1
+          }
+
+          if [[ "$TARGET_ENVIRONMENT" == "zenodo-sandbox" && "$ZENODO_BASE_URL" != "https://sandbox.zenodo.org/api" ]]; then
+            echo "zenodo-sandbox must use https://sandbox.zenodo.org/api" >&2
+            exit 1
+          fi
+
+          if [[ "$TARGET_ENVIRONMENT" == "zenodo-production" && "$ZENODO_BASE_URL" != "https://zenodo.org/api" ]]; then
+            echo "zenodo-production must use https://zenodo.org/api" >&2
+            exit 1
+          fi
+
+      - name: Create Zenodo draft, upload files, and optionally publish
         env:
           ZENODO_ACCESS_TOKEN: ${{ secrets.ZENODO_ACCESS_TOKEN }}
           ZENODO_BASE_URL: ${{ vars.ZENODO_BASE_URL }}
           PUBLISH_ZENODO: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_zenodo || false }}
+          RESEARCH_UPLOAD_DIR: uploads
         run: node scripts/zenodo-sync.mjs
-      - name: Ensure result report exists
+
+      - name: Ensure a result report exists
         if: ${{ always() }}
+        shell: bash
         run: |
           mkdir -p dist
-          test -f dist/zenodo-result.json || jq -n --arg status "failed-before-result" --arg environment "$TARGET_ENVIRONMENT" '{status:$status,environment:$environment,published:false}' > dist/zenodo-result.json
-      - name: Update catalog distribution status
-        if: ${{ always() }}
-        run: node scripts/update-distribution.mjs dist/zenodo-result.json
-      - name: Commit catalog status
-        if: ${{ always() }}
-        run: |
-          git config user.name "research-distribution-bot"
-          git config user.email "research-distribution-bot@users.noreply.github.com"
-          git add data/research-index.json records queue/current.json
-          git diff --cached --quiet || git commit -m "chore: record Zenodo distribution result"
-          git push
+          if [[ ! -f dist/zenodo-result.json ]]; then
+            jq -n \
+              --arg status "failed-before-result" \
+              --arg environment "$TARGET_ENVIRONMENT" \
+              --arg run_id "$GITHUB_RUN_ID" \
+              --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+              '{status: $status, environment: $environment, run_id: $run_id, run_attempt: $run_attempt, published: false}' \
+              > dist/zenodo-result.json
+          fi
+
       - name: Upload Zenodo result
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -92,6 +117,7 @@ jobs:
     if: ${{ always() }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Document verification endpoints
         env:
           ORCID_ID: ${{ vars.ORCID_ID }}
