@@ -1,0 +1,71 @@
+name: Repository Ingest
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository_url:
+        description: "Public Git repository URL"
+        required: true
+        type: string
+      ref:
+        description: "Tag, branch, or commit to archive"
+        required: true
+        default: "main"
+        type: string
+      title:
+        description: "Research software title"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Clone requested repository
+        env:
+          REPOSITORY_URL: ${{ inputs.repository_url }}
+          REPOSITORY_REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none --no-checkout "$REPOSITORY_URL" source-repository
+          git -C source-repository fetch --depth=1 origin "$REPOSITORY_REF"
+          git -C source-repository checkout --detach FETCH_HEAD
+          git -C source-repository submodule update --init --recursive --depth=1 || true
+          echo "REPOSITORY_COMMIT=$(git -C source-repository rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Scan for oversized files and likely secrets
+        run: |
+          set -euo pipefail
+          oversized=$(find source-repository -type f -not -path '*/.git/*' -size +50M -print)
+          test -z "$oversized" || { echo "Oversized files detected:"; echo "$oversized"; exit 1; }
+          if grep -RIlE '(BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|gh[pousr]_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{20,})' source-repository --exclude-dir=.git | head -1 | grep -q .; then
+            echo "Potential secret material detected; archive blocked." >&2
+            exit 1
+          fi
+      - name: Create immutable source archive
+        run: |
+          mkdir -p uploads
+          git -C source-repository archive --format=tar.gz --prefix=source/ -o ../uploads/repository-source.tar.gz HEAD
+          sha256sum uploads/repository-source.tar.gz
+      - name: Build software catalog record
+        env:
+          REPOSITORY_URL: ${{ inputs.repository_url }}
+          REPOSITORY_REF: ${{ inputs.ref }}
+          REPOSITORY_COMMIT: ${{ env.REPOSITORY_COMMIT }}
+          RESEARCH_TITLE: ${{ inputs.title }}
+          ORCID_ID: ${{ vars.ORCID_ID }}
+          CREATOR_NAME: "Watts, Deonte"
+        run: node scripts/repository-ingest.mjs
+      - name: Commit record and queue Zenodo Sandbox sync
+        run: |
+          git config user.name "research-distribution-bot"
+          git config user.email "research-distribution-bot@users.noreply.github.com"
+          git add uploads/repository-source.tar.gz records data/research-index.json queue/current.json
+          git commit -m "ingest: archive ${{ inputs.repository_url }} at ${{ inputs.ref }}"
+          git push
