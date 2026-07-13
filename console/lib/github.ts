@@ -10,6 +10,11 @@ export type UploadMetadata = {
   publication_type?: string;
   publication_date: string;
   access_right: string;
+  embargo_date?: string;
+  language?: string;
+  version?: string;
+  notes?: string;
+  doi?: string;
   related_identifiers: Array<Record<string, string>>;
 };
 
@@ -143,8 +148,13 @@ export async function queueResearchUpload(input: { filename: string; file: Buffe
     publication_type: input.metadata.publication_type,
     publication_date: input.metadata.publication_date,
     access_right: input.metadata.access_right,
+    embargo_date: input.metadata.embargo_date,
+    language: input.metadata.language,
+    version: input.metadata.version,
+    notes: input.metadata.notes,
+    doi: input.metadata.doi,
     related_identifiers: input.metadata.related_identifiers,
-    identifiers: { doi: null, reserved_doi: null },
+    identifiers: { doi: input.metadata.doi || null, reserved_doi: null },
     files: [{ path: uploadPath, filename: safeName, role: "canonical", bytes: input.file.byteLength, sha256: digest }],
     distribution: { zenodo: "queued-sandbox", orcid: "blocked-until-doi" },
     created_at: createdAt,
@@ -154,7 +164,7 @@ export async function queueResearchUpload(input: { filename: string; file: Buffe
   const manifest = {
     record_id: recordId,
     files: record.files,
-    validation: { checksum_required: true, all_files_present: true },
+    validation: { checksum_required: true, all_files_present: true, metadata_confirmed: true },
     created_at: createdAt,
   };
 

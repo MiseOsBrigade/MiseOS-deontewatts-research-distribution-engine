@@ -1,0 +1,23 @@
+{
+  "title": "Mirror-Coupled Dark Sector Research Program",
+  "upload_type": "publication",
+  "publication_type": "preprint",
+  "description": "Three linked theoretical manuscripts examining a hidden U(1)_D dark sector and the falsifiable conjecture alpha_D approximately equals alpha.",
+  "creators": [
+    {
+      "name": "Watts, Deonte",
+      "affiliation": "Independent Researcher",
+      "orcid": "0009-0005-8586-3650"
+    }
+  ],
+  "keywords": [
+    "dark matter",
+    "hidden sector",
+    "dark photon",
+    "self-interacting dark matter",
+    "fine-structure constant"
+  ],
+  "access_right": "open",
+  "license": "cc-by-4.0",
+  "version": "0.1.0"
+}
