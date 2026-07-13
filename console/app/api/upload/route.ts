@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { queueResearchUpload, type UploadMetadata } from "@/lib/github";
+import { registerResearchMetadata } from "@/lib/research-registry";
 import { assertAllowedOrigin, enforceRateLimit, verifyIntakeKey } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const allowedTypes = new Set([
   "application/pdf",
@@ -95,6 +97,9 @@ export async function POST(request: Request) {
     validateDoi(doi);
     const relatedIdentifier = text(form, "related_identifier", false, 1000);
     const relation = choice(form, "relation", allowedRelations, false);
+    const language = text(form, "language", false, 3).toLowerCase();
+    const version = text(form, "version", false, 50);
+    const notes = text(form, "notes", false, 2000);
 
     const metadata: UploadMetadata = {
       title,
@@ -107,9 +112,9 @@ export async function POST(request: Request) {
       publication_date: publicationDate,
       access_right: accessRight,
       ...(embargoDate ? { embargo_date: embargoDate } : {}),
-      ...(text(form, "language", false, 3) ? { language: text(form, "language", false, 3).toLowerCase() } : {}),
-      ...(text(form, "version", false, 50) ? { version: text(form, "version", false, 50) } : {}),
-      ...(text(form, "notes", false, 2000) ? { notes: text(form, "notes", false, 2000) } : {}),
+      ...(language ? { language } : {}),
+      ...(version ? { version } : {}),
+      ...(notes ? { notes } : {}),
       ...(doi ? { doi } : {}),
       related_identifiers: relatedIdentifier ? [{ identifier: relatedIdentifier, relation: relation || "isSupplementTo" }] : [],
     };
@@ -120,7 +125,9 @@ export async function POST(request: Request) {
       metadata,
     });
 
-    return NextResponse.json({ ok: true, ...result }, { status: 201 });
+    const registry = await registerResearchMetadata(metadata);
+
+    return NextResponse.json({ ok: true, ...result, registry }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload failed.";
     const status = message.includes("rate limit") ? 429 : message === "Unauthorized." ? 401 : 400;
