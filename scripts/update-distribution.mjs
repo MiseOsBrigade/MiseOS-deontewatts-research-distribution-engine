@@ -1,4 +1,5 @@
-import { readJson, recordSummary, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
+import fs from "node:fs";
+import { metadataFingerprint, readJson, recordSummary, sha256, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
 
 const resultPath = process.argv[2] || "dist/zenodo-result.json";
 const queue = readJson("queue/current.json");
@@ -22,6 +23,17 @@ const zenodo = {
   published: Boolean(result.published),
   updated_at: now,
 };
+
+// A production publish dispatch requires this fingerprint to still match the record's current
+// content (see promote-queue.mjs's stageForManualPublish) - only stamp a fresh one when this run
+// actually produced a reviewable Sandbox draft, so edits made after the fact invalidate it
+// instead of silently carrying over a stale match.
+const canonicalPath = queue.files?.[0];
+if (zenodo.environment === "zenodo-sandbox" && zenodo.status !== "failed" && canonicalPath && fs.existsSync(canonicalPath)) {
+  zenodo.reviewed_fingerprint = metadataFingerprint(record, sha256(canonicalPath));
+} else {
+  zenodo.reviewed_fingerprint = record.distribution?.zenodo?.reviewed_fingerprint ?? null;
+}
 
 record.distribution = { ...(record.distribution || {}), zenodo };
 record.identifiers = {
@@ -49,4 +61,13 @@ writeJson("queue/current.json", {
   reserved_doi: zenodo.reserved_doi,
   published: zenodo.published,
 });
+
+const pending = readJson("queue/pending.json");
+if (pending) {
+  const entry = (pending.records || []).find((item) => item.record_id === queue.record_id);
+  if (entry) entry.status = zenodo.status === "failed" ? "sync-failed" : zenodo.published ? "published" : "synced-draft";
+  if (pending.current_record_id === queue.record_id) pending.current_record_id = null;
+  writeJson("queue/pending.json", pending);
+}
+
 console.log(JSON.stringify({ record_id: record.id, zenodo }, null, 2));
