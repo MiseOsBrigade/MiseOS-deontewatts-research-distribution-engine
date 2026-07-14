@@ -1,6 +1,12 @@
 import fs from "node:fs";
 
-const path = "metadata/research.json";
+// Validate whichever record is actually staged for sync (queue/current.json.metadata_path),
+// so a real backlog record's records/<id>/record.json gets the same required-field check as
+// the sandbox-validation payload, instead of only ever checking metadata/research.json - a
+// file that's unrelated to the record actually being synced once a real backlog item is
+// promoted. Fall back to metadata/research.json for standalone use before anything is queued.
+const queue = fs.existsSync("queue/current.json") ? JSON.parse(fs.readFileSync("queue/current.json", "utf8")) : null;
+const path = queue?.metadata_path || "metadata/research.json";
 const required = [
   "title",
   "creators",

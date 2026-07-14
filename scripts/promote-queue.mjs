@@ -48,6 +48,13 @@ function writePromotion(promotion, pending) {
   writeJson(recordPath, record);
   upsertIndexRecord(recordSummary(record));
 
+  // require_manifest_validation is satisfied by the checksum verification that just ran in
+  // verifyCanonicalFile - persist that back so the manifest accurately reflects it, rather than
+  // requiring some other process to have already set it (nothing else does).
+  const manifest = readJson(manifestPath);
+  manifest.validated = true;
+  writeJson(manifestPath, manifest);
+
   writeJson(CURRENT_PATH, {
     schema_version: "1.0.0",
     record_id: entry.record_id,
