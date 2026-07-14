@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { readJson, recordSummary, sha256, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
+import { metadataFingerprint, readJson, recordSummary, sha256, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
 
 const PENDING_PATH = "queue/pending.json";
 const CURRENT_PATH = "queue/current.json";
@@ -152,6 +152,19 @@ function stageForManualPublish(recordId) {
     throw new Error(
       `${recordId} has not completed a Zenodo Sandbox draft sync yet (distribution.zenodo: ${JSON.stringify(sandboxZenodo)}). ` +
         "Run Research Sync to produce and review a Sandbox draft before dispatching a production publish."
+    );
+  }
+
+  // A prior Sandbox draft existing isn't enough on its own - record.json or the canonical file
+  // could have been edited since that draft was reviewed, and update-distribution.mjs never
+  // reruns to notice. Require the record's current content to still match what was fingerprinted
+  // when that Sandbox draft was produced (see metadataFingerprint / update-distribution.mjs).
+  const record = readJson(staged.recordPath);
+  const currentFingerprint = metadataFingerprint(record, staged.canonical.sha256);
+  if (!sandboxZenodo.reviewed_fingerprint || sandboxZenodo.reviewed_fingerprint !== currentFingerprint) {
+    throw new Error(
+      `${recordId}'s record metadata or canonical file has changed since its Sandbox draft was reviewed. ` +
+        "Re-run Research Sync to produce a fresh Sandbox draft reflecting the current content before publishing."
     );
   }
 
