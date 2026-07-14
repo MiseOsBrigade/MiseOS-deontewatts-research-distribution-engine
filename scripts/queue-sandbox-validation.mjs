@@ -28,10 +28,16 @@ const fileSha256 = crypto.createHash("sha256").update(binary).digest("hex");
 
 const existing = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
 const publicationDate = new Date().toISOString().slice(0, 10);
-// Derived from the date rather than wall-clock time, so a rerun on the same day with the
-// same deterministic binary produces byte-identical output and the workflow's
-// "already current, no commit needed" check actually works.
-const now = `${publicationDate}T00:00:00.000Z`;
+const realNow = new Date().toISOString();
+
+// The generated binary is always byte-identical, so the only thing that can legitimately
+// differ between reruns is the calendar day. Reuse the prior event timestamp on a same-day
+// rerun so the output stays byte-identical (and the workflow's "already current, no commit
+// needed" check works) without flooring every genuinely new event to a fixed time of day.
+const existingRecord = readJson(`${recordDirectory}/record.json`);
+const reuseTimestamp = existingRecord && existingRecord.publication_date === publicationDate;
+const createdAt = reuseTimestamp ? existingRecord.created_at : realNow;
+const now = reuseTimestamp ? existingRecord.updated_at : realNow;
 const metadata = {
   ...existing,
   title: "MiseOS Research Distribution Engine — Zenodo Sandbox Validation",
@@ -85,7 +91,7 @@ const record = {
   source: { type: "ci-validation" },
   identifiers: {},
   distribution: {},
-  created_at: now,
+  created_at: createdAt,
   updated_at: now
 };
 
