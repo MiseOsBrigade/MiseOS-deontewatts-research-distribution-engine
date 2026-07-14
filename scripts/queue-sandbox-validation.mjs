@@ -27,8 +27,11 @@ fs.writeFileSync(outputPath, binary);
 const fileSha256 = crypto.createHash("sha256").update(binary).digest("hex");
 
 const existing = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
-const now = new Date().toISOString();
-const publicationDate = now.slice(0, 10);
+const publicationDate = new Date().toISOString().slice(0, 10);
+// Derived from the date rather than wall-clock time, so a rerun on the same day with the
+// same deterministic binary produces byte-identical output and the workflow's
+// "already current, no commit needed" check actually works.
+const now = `${publicationDate}T00:00:00.000Z`;
 const metadata = {
   ...existing,
   title: "MiseOS Research Distribution Engine — Zenodo Sandbox Validation",

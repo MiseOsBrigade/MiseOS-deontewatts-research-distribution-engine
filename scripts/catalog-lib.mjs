@@ -32,8 +32,12 @@ export function sha256(filePath) {
 export function upsertIndexRecord(summary) {
   const index = readJson(INDEX_PATH, { schema_version: "1.0.0", updated_at: new Date().toISOString(), records: [] });
   const position = index.records.findIndex((record) => record.id === summary.id);
-  if (position >= 0) index.records[position] = { ...index.records[position], ...summary };
-  else index.records.push(summary);
+  const merged = position >= 0 ? { ...index.records[position], ...summary } : summary;
+  const unchanged = position >= 0 && JSON.stringify(index.records[position]) === JSON.stringify(merged);
+  if (unchanged) return index;
+
+  if (position >= 0) index.records[position] = merged;
+  else index.records.push(merged);
   index.records.sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
   index.updated_at = new Date().toISOString();
   writeJson(INDEX_PATH, index);

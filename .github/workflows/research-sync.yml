@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: research-sync-${{ github.ref }}
@@ -127,6 +128,7 @@ jobs:
           fi
 
       - name: Commit catalog state
+        id: commit_catalog
         shell: bash
         run: |
           set -euo pipefail
@@ -135,11 +137,23 @@ jobs:
           git add data/research-index.json records queue/current.json queue/pending.json reports 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No catalog state changes to commit."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
           else
             record_id=$(jq -r '.record_id' queue/current.json)
             git commit -m "sync: record Zenodo state for ${record_id}"
             git push origin HEAD:${GITHUB_REF_NAME}
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Continue the backlog
+        if: github.event_name == 'push' && steps.commit_catalog.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "A single push can attach canonical files for more than one pending record, but only one is synced per run (max_active_records)."
+          echo "Dispatching Research Sync again so the next ready record isn't stuck waiting for an unrelated push."
+          gh workflow run research-sync.yml --ref "${GITHUB_REF_NAME}" -f publish_zenodo=false
 
       - name: Ensure a result report exists
         if: ${{ always() }}

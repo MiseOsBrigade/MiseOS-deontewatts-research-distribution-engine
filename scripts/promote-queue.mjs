@@ -62,6 +62,21 @@ function writePromotion(promotion, pending) {
   });
 }
 
+// A manual workflow_dispatch run (e.g. the reviewed-record production publish step) must act
+// on whatever record is already staged in queue/current.json, not advance the sequential
+// backlog - the human dispatching it is approving that specific record, which may already
+// have gone through an automatic Sandbox sync (and so have processed_at set).
+if (process.env.GITHUB_EVENT_NAME && process.env.GITHUB_EVENT_NAME !== "push") {
+  const staged = readJson(CURRENT_PATH);
+  if (staged) {
+    console.log(`Manual run: using the record already staged in queue/current.json: ${staged.record_id}.`);
+    setOutput("ready", "true");
+  } else {
+    notReady("Manual run: queue/current.json is empty; stage a record before dispatching Research Sync manually.");
+  }
+  process.exit(0);
+}
+
 const existingCurrent = readJson(CURRENT_PATH);
 if (existingCurrent && !existingCurrent.processed_at) {
   console.log(`queue/current.json already has an unprocessed record queued: ${existingCurrent.record_id}`);
