@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: queue-sandbox-validation
@@ -16,13 +17,13 @@ jobs:
     environment: zenodo-sandbox
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Confirm Sandbox configuration exists
         shell: bash
@@ -47,6 +48,7 @@ jobs:
         run: node scripts/validate-metadata.mjs
 
       - name: Commit the validation release
+        id: commit
         shell: bash
         run: |
           set -euo pipefail
@@ -57,13 +59,24 @@ jobs:
 
           if git diff --cached --quiet; then
             echo "The validation payload is already current; no commit was needed."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           git commit -m "test: queue Zenodo Sandbox validation deposit"
           git push origin HEAD:${GITHUB_REF_NAME}
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Explain automatic follow-up
+      - name: Trigger Research Sync
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "The commit changes uploads/** and metadata/research.json."
-          echo "Research Sync will start automatically and use zenodo-sandbox."
+          set -euo pipefail
+          echo "The commit changed uploads/**, metadata/research.json, records/zenodo-sandbox-validation, queue/current.json, and data/research-index.json."
+          echo "Pushes made with GITHUB_TOKEN do not trigger other workflows automatically, so Research Sync is dispatched explicitly below."
+          gh workflow run research-sync.yml --ref "${GITHUB_REF_NAME}" -f publish_zenodo=false
+
+      - name: No new validation payload
+        if: steps.commit.outputs.pushed != 'true'
+        run: echo "Nothing changed; Research Sync was not triggered."

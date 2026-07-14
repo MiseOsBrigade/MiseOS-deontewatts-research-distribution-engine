@@ -63,6 +63,18 @@ if (!promoted) {
 const { entry, recordPath, manifestPath, distributionPath, canonical } = promoted;
 const now = new Date().toISOString();
 
+// Write pending.json and record.json first, and queue/current.json last: current.json's
+// existence is what the next run treats as "a promotion already happened", so it must only
+// appear once every other piece of that promotion's state is durable.
+entry.status = "queued_for_sync";
+pending.current_record_id = entry.record_id;
+writeJson(PENDING_PATH, pending);
+
+const record = readJson(recordPath);
+record.updated_at = now;
+writeJson(recordPath, record);
+upsertIndexRecord(recordSummary(record));
+
 writeJson(CURRENT_PATH, {
   schema_version: "1.0.0",
   record_id: entry.record_id,
@@ -75,15 +87,6 @@ writeJson(CURRENT_PATH, {
   status: "queued",
   queued_at: now
 });
-
-entry.status = "queued_for_sync";
-pending.current_record_id = entry.record_id;
-writeJson(PENDING_PATH, pending);
-
-const record = readJson(recordPath);
-record.updated_at = now;
-writeJson(recordPath, record);
-upsertIndexRecord(recordSummary(record));
 
 console.log(`Promoted ${entry.record_id} to queue/current.json.`);
 setOutput("ready", "true");

@@ -1,13 +1,18 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { recordSummary, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
+import { readJson, recordSummary, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
 
 const RECORD_ID = "zenodo-sandbox-validation";
 const uploadDirectory = "uploads";
 const outputPath = path.join(uploadDirectory, "zenodo-sandbox-validation.bin");
 const metadataPath = "metadata/research.json";
 const recordDirectory = `records/${RECORD_ID}`;
+
+const existingQueue = readJson("queue/current.json");
+if (existingQueue && !existingQueue.processed_at && existingQueue.record_id !== RECORD_ID) {
+  throw new Error(`Cannot queue Sandbox validation while ${existingQueue.record_id} is still unprocessed in queue/current.json.`);
+}
 
 fs.mkdirSync(uploadDirectory, { recursive: true });
 
