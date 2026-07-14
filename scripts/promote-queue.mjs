@@ -62,11 +62,16 @@ function writePromotion(promotion, pending) {
   });
 }
 
-// A manual workflow_dispatch run (e.g. the reviewed-record production publish step) must act
-// on whatever record is already staged in queue/current.json, not advance the sequential
-// backlog - the human dispatching it is approving that specific record, which may already
-// have gone through an automatic Sandbox sync (and so have processed_at set).
-if (process.env.GITHUB_EVENT_NAME && process.env.GITHUB_EVENT_NAME !== "push") {
+// A genuine manual workflow_dispatch run (e.g. the reviewed-record production publish step)
+// must act on whatever record is already staged in queue/current.json, not advance the
+// sequential backlog - the human dispatching it is approving that specific record, which may
+// already have gone through an automatic Sandbox sync (and so have processed_at set).
+// research-sync.yml's own "Continue the backlog" step also dispatches via workflow_dispatch to
+// get around GITHUB_TOKEN's push-trigger restriction, but that internal continuation must be
+// treated like a push (advance the backlog), not a manual-publish request - it sets
+// CONTINUE_BACKLOG=true to say so.
+const isManualPublish = process.env.GITHUB_EVENT_NAME === "workflow_dispatch" && process.env.CONTINUE_BACKLOG !== "true";
+if (isManualPublish) {
   const staged = readJson(CURRENT_PATH);
   if (staged) {
     console.log(`Manual run: using the record already staged in queue/current.json: ${staged.record_id}.`);
@@ -86,6 +91,21 @@ if (existingCurrent && !existingCurrent.processed_at) {
 
 const pending = readJson(PENDING_PATH);
 if (!pending) throw new Error(`${PENDING_PATH} is missing.`);
+
+// update-distribution.mjs writes queue/current.json's processed_at before it clears
+// pending.json's current_record_id/status. If it (or the runner) stopped between those two
+// writes, pending.json still claims the just-finished record is active, which would otherwise
+// block promotion forever under max_active_records. Reconcile it here.
+if (existingCurrent?.processed_at && pending.current_record_id === existingCurrent.record_id) {
+  const staleEntry = (pending.records || []).find((item) => item.record_id === existingCurrent.record_id);
+  if (staleEntry) {
+    staleEntry.status =
+      existingCurrent.status === "failed" ? "sync-failed" : existingCurrent.published ? "published" : "synced-draft";
+  }
+  pending.current_record_id = null;
+  writeJson(PENDING_PATH, pending);
+  console.log(`Reconciled ${existingCurrent.record_id}'s pending-queue status after an interrupted write-back.`);
+}
 
 // queue/current.json can be entirely absent while pending.json still claims a record is
 // active, if an earlier promotion was interrupted after updating pending.json but before

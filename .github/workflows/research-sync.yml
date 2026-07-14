@@ -13,6 +13,11 @@ on:
         required: true
         type: boolean
         default: false
+      continue_backlog:
+        description: "Internal: set by Research Sync itself to advance the backlog after an automatic sync. Leave false for a manual run."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -36,6 +41,8 @@ jobs:
 
       - name: Promote next queued record into queue/current.json
         id: promote
+        env:
+          CONTINUE_BACKLOG: ${{ github.event_name == 'workflow_dispatch' && inputs.continue_backlog && 'true' || 'false' }}
         run: node scripts/promote-queue.mjs
 
       - name: Validate metadata and one-record queue
@@ -153,7 +160,7 @@ jobs:
           set -euo pipefail
           echo "A single push can attach canonical files for more than one pending record, but only one is synced per run (max_active_records)."
           echo "Dispatching Research Sync again so the next ready record isn't stuck waiting for an unrelated push."
-          gh workflow run research-sync.yml --ref "${GITHUB_REF_NAME}" -f publish_zenodo=false
+          gh workflow run research-sync.yml --ref "${GITHUB_REF_NAME}" -f publish_zenodo=false -f continue_backlog=true
 
       - name: Ensure a result report exists
         if: ${{ always() }}
