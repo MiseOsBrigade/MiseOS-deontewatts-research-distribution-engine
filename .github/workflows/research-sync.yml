@@ -13,6 +13,10 @@ on:
         required: true
         type: boolean
         default: false
+      record_id:
+        description: "Record id to publish (required when publish_zenodo is true). Re-stages this exact record regardless of what queue/current.json currently holds."
+        required: false
+        type: string
       continue_backlog:
         description: "Internal: set by Research Sync itself to advance the backlog after an automatic sync. Leave false for a manual run."
         required: false
@@ -45,10 +49,17 @@ jobs:
           echo "continue_backlog and publish_zenodo cannot both be true: continue_backlog advances the backlog to a different record, while publish_zenodo requires acting on the specific record already staged and reviewed for production. Dispatch these separately." >&2
           exit 1
 
+      - name: Require record_id for production publish
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_zenodo && inputs.record_id == ''
+        run: |
+          echo "publish_zenodo requires record_id: name the exact record you are approving for production, rather than relying on whatever queue/current.json happens to hold." >&2
+          exit 1
+
       - name: Promote next queued record into queue/current.json
         id: promote
         env:
           CONTINUE_BACKLOG: ${{ github.event_name == 'workflow_dispatch' && inputs.continue_backlog && !inputs.publish_zenodo && 'true' || 'false' }}
+          TARGET_RECORD_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.record_id || '' }}
         run: node scripts/promote-queue.mjs
 
       - name: Validate metadata and one-record queue
