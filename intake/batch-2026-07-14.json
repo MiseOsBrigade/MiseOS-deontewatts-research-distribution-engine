@@ -1,0 +1,10 @@
+{
+  "status": "validated-locally",
+  "publication_enabled": false,
+  "records": [
+    "ethos-aegis",
+    "nhtqs-dicom",
+    "aeon-sentinel",
+    "ai-soul-framework-concepts"
+  ]
+}
