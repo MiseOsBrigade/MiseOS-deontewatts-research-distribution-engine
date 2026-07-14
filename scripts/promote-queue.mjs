@@ -51,6 +51,21 @@ function verifyManifestFiles(manifest) {
   return allPresent;
 }
 
+function buildCurrentState({ recordId, recordPath, manifestPath, distributionPath, canonicalPath, environment, queuedAt }) {
+  return {
+    schema_version: "1.0.0",
+    record_id: recordId,
+    metadata_path: recordPath,
+    manifest_path: manifestPath,
+    distribution_path: distributionPath,
+    files: [canonicalPath],
+    environment,
+    publish: false,
+    status: "queued",
+    queued_at: queuedAt
+  };
+}
+
 function writePromotion(promotion, pending) {
   const { entry, recordPath, manifestPath, distributionPath, canonical } = promotion;
   const now = new Date().toISOString();
@@ -69,23 +84,27 @@ function writePromotion(promotion, pending) {
 
   // require_manifest_validation is satisfied per-file, not just for the canonical entry that
   // verifyCanonicalFile already checked - persist that back so the manifest accurately reflects
-  // whether every listed file has actually been attached and checksum-verified.
+  // whether every listed file has actually been attached and checksum-verified. When the rule is
+  // on, an incomplete manifest must block promotion rather than just being recorded as such.
   const manifest = readJson(manifestPath);
   manifest.validated = verifyManifestFiles(manifest);
   writeJson(manifestPath, manifest);
+  if (pending.rules?.require_manifest_validation && !manifest.validated) {
+    throw new Error(`Manifest validation is required for ${entry.record_id}, but one or more listed files are missing or unverified.`);
+  }
 
-  writeJson(CURRENT_PATH, {
-    schema_version: "1.0.0",
-    record_id: entry.record_id,
-    metadata_path: recordPath,
-    manifest_path: manifestPath,
-    distribution_path: distributionPath,
-    files: [canonical.path],
-    environment: pending.environment || "zenodo-sandbox",
-    publish: false,
-    status: "queued",
-    queued_at: now
-  });
+  writeJson(
+    CURRENT_PATH,
+    buildCurrentState({
+      recordId: entry.record_id,
+      recordPath,
+      manifestPath,
+      distributionPath,
+      canonicalPath: canonical.path,
+      environment: pending.environment || "zenodo-sandbox",
+      queuedAt: now
+    })
+  );
 }
 
 // Stage a specific already-synced record for production publish, independent of whatever
@@ -95,25 +114,60 @@ function writePromotion(promotion, pending) {
 // production publish. Re-deriving the target from record_id instead of trusting
 // queue/current.json means that race can no longer strand or swap the record being published.
 function stageForManualPublish(recordId) {
+  const pending = readJson(PENDING_PATH);
+  const existingCurrent = readJson(CURRENT_PATH);
+
+  // Publishing record A must not clobber a *different* record B that the automatic backlog
+  // still has actively in flight: overwriting queue/current.json here would discard B's queue
+  // state while pending.json still marks B as queued_for_sync, and neither the write-back
+  // reconciliation nor the interrupted-promotion recovery below know how to resume a record
+  // that queue/current.json no longer references. Refuse until B's sync finishes.
+  if (existingCurrent && !existingCurrent.processed_at && existingCurrent.record_id !== recordId) {
+    throw new Error(
+      `Cannot stage ${recordId} for production publish: ${existingCurrent.record_id} is still an unprocessed sync in queue/current.json. Wait for it to finish first.`
+    );
+  }
+  if (pending?.current_record_id && pending.current_record_id !== recordId) {
+    const activeEntry = (pending.records || []).find((item) => item.record_id === pending.current_record_id);
+    if (activeEntry?.status === "queued_for_sync") {
+      throw new Error(
+        `Cannot stage ${recordId} for production publish: ${pending.current_record_id} is still queued_for_sync in the backlog. Wait for that sync to finish first.`
+      );
+    }
+  }
+
   const staged = verifyCanonicalFile({ record_id: recordId });
   if (!staged) {
     throw new Error(
       `${recordId} is missing its record/manifest/distribution files, or its canonical file no longer verifies against the manifest.`
     );
   }
+
+  // Production publish approves a record that already went through Sandbox review - it must not
+  // be able to fast-track a backlog record straight to production before anyone has seen a
+  // Sandbox draft of it.
+  const distribution = readJson(staged.distributionPath);
+  const sandboxZenodo = distribution?.zenodo;
+  if (!sandboxZenodo || sandboxZenodo.environment !== "zenodo-sandbox" || sandboxZenodo.status !== "draft") {
+    throw new Error(
+      `${recordId} has not completed a Zenodo Sandbox draft sync yet (distribution.zenodo: ${JSON.stringify(sandboxZenodo)}). ` +
+        "Run Research Sync to produce and review a Sandbox draft before dispatching a production publish."
+    );
+  }
+
   const { recordPath, manifestPath, distributionPath, canonical } = staged;
-  writeJson(CURRENT_PATH, {
-    schema_version: "1.0.0",
-    record_id: recordId,
-    metadata_path: recordPath,
-    manifest_path: manifestPath,
-    distribution_path: distributionPath,
-    files: [canonical.path],
-    environment: "zenodo-production",
-    publish: false,
-    status: "queued",
-    queued_at: new Date().toISOString()
-  });
+  writeJson(
+    CURRENT_PATH,
+    buildCurrentState({
+      recordId,
+      recordPath,
+      manifestPath,
+      distributionPath,
+      canonicalPath: canonical.path,
+      environment: "zenodo-production",
+      queuedAt: new Date().toISOString()
+    })
+  );
 }
 
 // A genuine manual workflow_dispatch run (e.g. the reviewed-record production publish step) is

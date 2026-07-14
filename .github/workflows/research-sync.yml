@@ -59,7 +59,7 @@ jobs:
         id: promote
         env:
           CONTINUE_BACKLOG: ${{ github.event_name == 'workflow_dispatch' && inputs.continue_backlog && !inputs.publish_zenodo && 'true' || 'false' }}
-          TARGET_RECORD_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.record_id || '' }}
+          TARGET_RECORD_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_zenodo && inputs.record_id || '' }}
         run: node scripts/promote-queue.mjs
 
       - name: Validate metadata and one-record queue

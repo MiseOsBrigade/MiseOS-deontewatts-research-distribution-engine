@@ -34,7 +34,7 @@ const raw = JSON.parse(fs.readFileSync(path, "utf8"));
 // Zenodo requires it verbatim, so it stays a hard requirement.
 const metadata = {
   ...raw,
-  upload_type: raw.upload_type || (raw.kind === "software" ? "software" : raw.kind === "dataset" ? "dataset" : "publication"),
+  upload_type: raw.kind === "software" ? "software" : raw.kind === "dataset" ? "dataset" : raw.upload_type || "publication",
   access_right: raw.access_right || "open"
 };
 const missing = required.filter((field) => {
