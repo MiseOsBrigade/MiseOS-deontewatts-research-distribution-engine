@@ -49,4 +49,13 @@ writeJson("queue/current.json", {
   reserved_doi: zenodo.reserved_doi,
   published: zenodo.published,
 });
+
+const pending = readJson("queue/pending.json");
+if (pending) {
+  const entry = (pending.records || []).find((item) => item.record_id === queue.record_id);
+  if (entry) entry.status = zenodo.status === "failed" ? "sync-failed" : zenodo.published ? "published" : "synced-draft";
+  if (pending.current_record_id === queue.record_id) pending.current_record_id = null;
+  writeJson("queue/pending.json", pending);
+}
+
 console.log(JSON.stringify({ record_id: record.id, zenodo }, null, 2));

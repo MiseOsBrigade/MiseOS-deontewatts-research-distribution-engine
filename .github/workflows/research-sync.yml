@@ -24,19 +24,47 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.promote.outputs.ready }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
+
+      - name: Promote next queued record into queue/current.json
+        id: promote
+        run: node scripts/promote-queue.mjs
+
       - name: Validate metadata and one-record queue
+        if: steps.promote.outputs.ready == 'true'
         run: |
           node scripts/validate-metadata.mjs
           node scripts/validate-queue.mjs
 
+      - name: Commit promoted queue state
+        if: steps.promote.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add queue/current.json queue/pending.json data/research-index.json records
+          if git diff --cached --quiet; then
+            echo "No promotion changes to commit."
+          else
+            git commit -m "sync: promote next queued record for Zenodo Sandbox"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
+
+      - name: No record ready
+        if: steps.promote.outputs.ready != 'true'
+        run: echo "No queued record has its canonical file attached yet; skipping the Zenodo stage for this run."
+
   zenodo:
     runs-on: ubuntu-latest
     needs: validate
+    if: needs.validate.outputs.ready == 'true'
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_zenodo && 'zenodo-production' || 'zenodo-sandbox' }}
     env:
       TARGET_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_zenodo && 'zenodo-production' || 'zenodo-sandbox' }}
