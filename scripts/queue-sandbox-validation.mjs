@@ -30,14 +30,13 @@ const existing = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
 const publicationDate = new Date().toISOString().slice(0, 10);
 const realNow = new Date().toISOString();
 
-// The generated binary is always byte-identical, so the only thing that can legitimately
-// differ between reruns is the calendar day. Reuse the prior event timestamp on a same-day
-// rerun so the output stays byte-identical (and the workflow's "already current, no commit
-// needed" check works) without flooring every genuinely new event to a fixed time of day.
+// The guard above already rejects a rerun while the prior queue entry is unprocessed, so any
+// run that reaches this point is a genuine new event (first queuing, or a deliberate re-queue
+// after the prior one finished) and should get the real current time. Only created_at, the
+// record's original creation time, should survive across runs.
 const existingRecord = readJson(`${recordDirectory}/record.json`);
-const reuseTimestamp = existingRecord && existingRecord.publication_date === publicationDate;
-const createdAt = reuseTimestamp ? existingRecord.created_at : realNow;
-const now = reuseTimestamp ? existingRecord.updated_at : realNow;
+const createdAt = existingRecord?.created_at ?? realNow;
+const now = realNow;
 const metadata = {
   ...existing,
   title: "MiseOS Research Distribution Engine — Zenodo Sandbox Validation",
