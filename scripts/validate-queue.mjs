@@ -2,7 +2,12 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 
 function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  const raw = fs.readFileSync(filePath, "utf8");
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`Failed to parse JSON from ${filePath}: ${error.message}`);
+  }
 }
 
 const queue = readJson("queue/current.json");
