@@ -1,0 +1,9 @@
+{
+  "record_id": "ethos-aegis",
+  "canonical_file": "uploads/ethos-aegis/ethos-aegis-scientific-manuscript.zip",
+  "files": [
+    {"path":"uploads/ethos-aegis/ethos-aegis-scientific-manuscript.zip","role":"canonical","bytes":4546768,"sha256":"97f303ed0d394739a7b6373cb62777275c65a55496874621121958b0eb3706a7","source_filename":"ethos-aegis-scientific-manuscript(2).zip"}
+  ],
+  "validated": true,
+  "binary_transfer_complete": false
+}
