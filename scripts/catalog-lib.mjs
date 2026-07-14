@@ -21,12 +21,42 @@ export function slugify(value) {
 }
 
 export function createRecordId(title, seed = "") {
-  const digest = crypto.createHash("sha256").update(`${title}\n${seed}`).digest("hex").slice(0, 10);
+  const digest = sha256Content(`${title}\n${seed}`).slice(0, 10);
   return `${new Date().toISOString().slice(0, 10)}-${slugify(title)}-${digest}`;
 }
 
+export function sha256Content(content) {
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
+
 export function sha256(filePath) {
-  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+  return sha256Content(fs.readFileSync(filePath));
+}
+
+export function recordPaths(recordId) {
+  const directory = `records/${recordId}`;
+  return {
+    directory,
+    record: `${directory}/record.json`,
+    manifest: `${directory}/manifest.json`,
+    distribution: `${directory}/distribution.json`
+  };
+}
+
+export function zenodoMetadata(record) {
+  return {
+    title: record.title,
+    upload_type: record.kind === "software" ? "software" : record.kind === "dataset" ? "dataset" : record.upload_type || "publication",
+    ...(record.kind === "publication" ? { publication_type: record.publication_type || "technicalnote" } : {}),
+    publication_date: record.publication_date,
+    description: record.description,
+    creators: record.creators,
+    keywords: record.keywords || [],
+    access_right: record.access_right || "open",
+    license: record.license || "cc-by-4.0",
+    ...(record.version ? { version: record.version } : {}),
+    related_identifiers: record.related_identifiers || []
+  };
 }
 
 // Captures exactly the fields a Zenodo deposit is actually built from (see zenodo-sync.mjs's
@@ -36,19 +66,10 @@ export function sha256(filePath) {
 // until a fresh Sandbox draft is produced and reviewed.
 export function metadataFingerprint(record, canonicalSha256) {
   const relevant = {
-    title: record.title,
-    description: record.description,
-    creators: record.creators,
-    keywords: record.keywords || [],
-    license: record.license,
-    upload_type: record.upload_type,
-    publication_type: record.publication_type,
-    publication_date: record.publication_date,
-    access_right: record.access_right,
-    related_identifiers: record.related_identifiers || [],
+    ...zenodoMetadata(record),
     canonical_sha256: canonicalSha256
   };
-  return crypto.createHash("sha256").update(JSON.stringify(relevant)).digest("hex");
+  return sha256Content(JSON.stringify(relevant));
 }
 
 export function upsertIndexRecord(summary) {
@@ -67,6 +88,7 @@ export function upsertIndexRecord(summary) {
 }
 
 export function recordSummary(record) {
+  const paths = recordPaths(record.id);
   return {
     id: record.id,
     kind: record.kind,
@@ -75,8 +97,14 @@ export function recordSummary(record) {
     identifiers: record.identifiers || {},
     source: record.source || {},
     distribution: record.distribution || {},
-    record_path: `records/${record.id}/record.json`,
+    record_path: paths.record,
     created_at: record.created_at,
     updated_at: record.updated_at
   };
+}
+
+export function persistRecord(recordPath, record, distributionPath, distribution = record.distribution) {
+  writeJson(recordPath, record);
+  if (distributionPath) writeJson(distributionPath, distribution);
+  upsertIndexRecord(recordSummary(record));
 }
