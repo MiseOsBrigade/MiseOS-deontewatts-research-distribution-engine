@@ -138,7 +138,7 @@ jobs:
           else
             record_id=$(jq -r '.record_id' queue/current.json)
             git commit -m "sync: record Zenodo state for ${record_id}"
-            git push origin HEAD:main
+            git push origin HEAD:${GITHUB_REF_NAME}
           fi
 
       - name: Ensure a result report exists

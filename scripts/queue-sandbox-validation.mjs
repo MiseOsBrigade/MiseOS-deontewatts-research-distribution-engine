@@ -10,7 +10,7 @@ const metadataPath = "metadata/research.json";
 const recordDirectory = `records/${RECORD_ID}`;
 
 const existingQueue = readJson("queue/current.json");
-if (existingQueue && !existingQueue.processed_at && existingQueue.record_id !== RECORD_ID) {
+if (existingQueue && !existingQueue.processed_at) {
   throw new Error(`Cannot queue Sandbox validation while ${existingQueue.record_id} is still unprocessed in queue/current.json.`);
 }
 
