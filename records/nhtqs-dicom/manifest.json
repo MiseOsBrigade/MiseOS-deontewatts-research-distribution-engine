@@ -1,0 +1,14 @@
+{
+  "record_id": "nhtqs-dicom",
+  "canonical_file": "uploads/nhtqs-dicom/NHTQS_DICOM_Manuscript_Source_Package_v1.zip",
+  "files": [
+    {"path":"uploads/nhtqs-dicom/NHTQS_DICOM_Manuscript_Source_Package_v1.zip","role":"canonical","bytes":3021573,"sha256":"a43c9a6c763880292855b26526170b3c1f6bc4b78d57015eb011caada4171d3b","source_filename":"NHTQS_DICOM_Manuscript_Source_Package_v1.zip"},
+    {"path":"uploads/nhtqs-dicom/NHTQS_DICOM_Manuscript_from_LaTeX_v1.pdf","role":"manuscript","bytes":1704204,"sha256":"31d3bde70f8ea72cebbe1cb2fe8355d17cc06d5d70ff531aacdd609f90ecaf35","source_filename":"NHTQS_DICOM_Manuscript_from_LaTeX_v1(1).pdf"},
+    {"path":"uploads/nhtqs-dicom/NHTQS_DICOM_Manuscript_LaTeX_Source_v1.zip","role":"source","bytes":1607168,"sha256":"258fcd7219136757536f6bdf7dd067ab9fafa5a63ba4438c6e60b879397fddaf","source_filename":"NHTQS_DICOM_Manuscript_LaTeX_Source_v1.zip"},
+    {"path":"uploads/nhtqs-dicom/visual-page-4.pdf","role":"supplement","bytes":441924,"sha256":"91271bf7180841254dc86cb0ec20c96d6c92453a9f9bfd02567494b1de1fc27f","source_filename":"10220BF1-4AB6-4A59-9AD1-649D821D8053.pdf"},
+    {"path":"uploads/nhtqs-dicom/visual-pages-2-4.pdf","role":"supplement","bytes":1817367,"sha256":"f49b6071f9708707adf784493c128acc5af76353b98f382396b46aff29512048","source_filename":"1FEB5A03-C396-4D3F-85B1-8386ED985F6C.pdf"},
+    {"path":"uploads/nhtqs-dicom/visual-title-page.pdf","role":"supplement","bytes":496109,"sha256":"79414b9b9bb8b758c1a220d6eaff4031178be06c6aac71d935bc72827c09524d","source_filename":"DAC1D21B-6016-4B85-834F-3EA057E1FF10.pdf"}
+  ],
+  "validated": true,
+  "binary_transfer_complete": false
+}

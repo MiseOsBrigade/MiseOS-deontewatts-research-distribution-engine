@@ -7,7 +7,11 @@
     {"record_id":"mobius-unitary-positivity","status":"blocked_pending_binary_attachment","position":1},
     {"record_id":"mobius-weil-li-rh-program","status":"blocked_pending_binary_attachment","position":2},
     {"record_id":"mirror-coupling-dark-sector","status":"blocked_pending_binary_attachment","position":3},
-    {"record_id":"one-unseen-component","status":"blocked_pending_binary_attachment","position":4}
+    {"record_id":"one-unseen-component","status":"blocked_pending_binary_attachment","position":4},
+    {"record_id":"ethos-aegis","status":"blocked_pending_binary_transfer","position":5},
+    {"record_id":"nhtqs-dicom","status":"blocked_pending_binary_transfer","position":6},
+    {"record_id":"aeon-sentinel","status":"blocked_pending_binary_transfer","position":7},
+    {"record_id":"ai-soul-framework-concepts","status":"blocked_pending_binary_transfer","position":8}
   ],
   "rules": {
     "max_active_records": 1,

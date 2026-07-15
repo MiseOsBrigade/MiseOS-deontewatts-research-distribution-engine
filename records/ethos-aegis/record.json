@@ -1,0 +1,18 @@
+{
+  "id": "ethos-aegis",
+  "kind": "publication",
+  "title": "Ethos Aegis",
+  "description": "Scientific manuscript and reproducible source package for the Ethos Aegis research framework.",
+  "creators": [{"name":"Deonte Watts","orcid":"0009-0005-8586-3650"}],
+  "keywords": ["AI assurance","ethics","governance","auditable systems"],
+  "license": "other-open",
+  "publication_type": "workingpaper",
+  "publication_date": "2026-07-14",
+  "access_right": "open",
+  "files": [{"path":"uploads/ethos-aegis/ethos-aegis-scientific-manuscript.zip","role":"canonical","bytes":4546768,"sha256":"97f303ed0d394739a7b6373cb62777275c65a55496874621121958b0eb3706a7","attachment_status":"verified-local-pending-transfer"}],
+  "identifiers": {},
+  "distribution": {"zenodo":{"status":"blocked-pending-binary-transfer","environment":"zenodo-sandbox","published":false},"orcid":{"status":"not-ready","write_back":false}},
+  "status": "draft",
+  "created_at": "2026-07-14T07:45:00.000Z",
+  "updated_at": "2026-07-14T07:45:00.000Z"
+}
