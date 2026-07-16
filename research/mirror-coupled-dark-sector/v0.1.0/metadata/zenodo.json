@@ -6,8 +6,19 @@
   "creators": [
     {
       "name": "Watts, Deonte",
-      "affiliation": "Independent Researcher",
+      "affiliation": "GoodShyt Group Inc.",
       "orcid": "0009-0005-8586-3650"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "GoodShyt Group Inc.",
+      "type": "Research group",
+      "identifiers": {
+        "isni": "0000000530299848",
+        "ringgold_id": "850902"
+      },
+      "identifier_status": "owner_asserted"
     }
   ],
   "keywords": [
