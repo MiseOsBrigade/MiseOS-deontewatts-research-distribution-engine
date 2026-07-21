@@ -1,0 +1,52 @@
+name: Catalog Validation
+
+on:
+  pull_request:
+    paths:
+      - "data/**"
+      - "records/**"
+      - "queue/**"
+      - "scripts/**"
+      - "console/**"
+      - ".github/workflows/catalog-validation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "data/**"
+      - "records/**"
+      - "queue/**"
+      - "scripts/**"
+      - "console/**"
+      - ".github/workflows/catalog-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Validate worker syntax
+        run: |
+          for file in scripts/*.mjs; do
+            [ -f "$file" ] && node --check "$file"
+          done
+      - name: Test shared worker utilities
+        run: node --test scripts/*.test.mjs
+      - name: Validate JSON and catalog references
+        run: |
+          files=$(find data records queue schema -name '*.json' -type f 2>/dev/null || true)
+          if [ -n "$files" ]; then node -e 'const fs=require("fs"); for (const f of process.argv.slice(1)) JSON.parse(fs.readFileSync(f,"utf8"));' $files; fi
+          node -e 'const fs=require("fs"); const i=JSON.parse(fs.readFileSync("data/research-index.json")); for (const r of i.records||[]) { if(!fs.existsSync(r.record_path)) throw new Error(`Missing ${r.record_path}`); const rec=JSON.parse(fs.readFileSync(r.record_path)); if(rec.id!==r.id) throw new Error(`ID mismatch for ${r.id}`); } console.log(`Validated ${i.records.length} records`);'
+      - name: Validate console
+        working-directory: console
+        run: |
+          rm -rf node_modules
+          npm install --no-audit --no-fund
+          npm run typecheck
+          npm run build
