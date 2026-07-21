@@ -1,10 +1,17 @@
-import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { persistRecord, readJson, recordPaths, sha256Content, writeJson } from "./catalog-lib.mjs";
 
+const RECORD_ID = "zenodo-sandbox-validation";
 const uploadDirectory = "uploads";
 const outputPath = path.join(uploadDirectory, "zenodo-sandbox-validation.bin");
 const metadataPath = "metadata/research.json";
+const paths = recordPaths(RECORD_ID);
+
+const existingQueue = readJson("queue/current.json");
+if (existingQueue && !existingQueue.processed_at) {
+  throw new Error(`Cannot queue Sandbox validation while ${existingQueue.record_id} is still unprocessed in queue/current.json.`);
+}
 
 fs.mkdirSync(uploadDirectory, { recursive: true });
 
@@ -16,9 +23,19 @@ for (let index = 0; index < payload.length; index += 1) {
 
 const binary = Buffer.concat([header, payload]);
 fs.writeFileSync(outputPath, binary);
+const fileSha256 = sha256Content(binary);
 
-const existing = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+const existing = readJson(metadataPath);
 const publicationDate = new Date().toISOString().slice(0, 10);
+const realNow = new Date().toISOString();
+
+// The guard above already rejects a rerun while the prior queue entry is unprocessed, so any
+// run that reaches this point is a genuine new event (first queuing, or a deliberate re-queue
+// after the prior one finished) and should get the real current time. Only created_at, the
+// record's original creation time, should survive across runs.
+const existingRecord = readJson(paths.record);
+const createdAt = existingRecord?.created_at ?? realNow;
+const now = realNow;
 const metadata = {
   ...existing,
   title: "MiseOS Research Distribution Engine — Zenodo Sandbox Validation",
@@ -45,16 +62,74 @@ const metadata = {
   related_identifiers: []
 };
 
-fs.writeFileSync(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`);
+writeJson(metadataPath, metadata);
 
-const sha256 = crypto.createHash("sha256").update(binary).digest("hex");
+const record = {
+  id: RECORD_ID,
+  kind: "publication",
+  title: metadata.title,
+  description: metadata.description,
+  creators: metadata.creators,
+  keywords: metadata.keywords,
+  license: metadata.license,
+  upload_type: metadata.upload_type,
+  publication_type: metadata.publication_type,
+  publication_date: metadata.publication_date,
+  access_right: metadata.access_right,
+  related_identifiers: metadata.related_identifiers,
+  files: [
+    {
+      role: "canonical",
+      name: path.basename(outputPath),
+      path: outputPath,
+      sha256: fileSha256,
+      size: binary.length
+    }
+  ],
+  source: { type: "ci-validation" },
+  identifiers: {},
+  distribution: {},
+  created_at: createdAt,
+  updated_at: now
+};
+
+writeJson(paths.manifest, {
+  record_id: RECORD_ID,
+  state: "draft",
+  files: record.files,
+  validated: false
+});
+const distribution = {
+  record_id: RECORD_ID,
+  publication_enabled: false,
+  zenodo: { status: "queued", environment: "zenodo-sandbox" },
+  orcid: { status: "blocked-until-reserved-doi", write_back_enabled: false, approval_required: true },
+  updated_at: now
+};
+persistRecord(paths.record, record, paths.distribution, distribution);
+
+writeJson("queue/current.json", {
+  schema_version: "1.0.0",
+  record_id: RECORD_ID,
+  metadata_path: paths.record,
+  manifest_path: paths.manifest,
+  distribution_path: paths.distribution,
+  files: [outputPath],
+  environment: "zenodo-sandbox",
+  publish: false,
+  status: "queued",
+  queued_at: now
+});
+
 console.log(
   JSON.stringify(
     {
       output: outputPath,
       bytes: binary.length,
-      sha256,
+      sha256: fileSha256,
       metadata: metadataPath,
+      record: paths.record,
+      queue: "queue/current.json",
       publication_date: publicationDate
     },
     null,
