@@ -1,10 +1,14 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-07-12T09:30:00.000Z",
+  "updated_at": "2026-07-14T07:45:00.000Z",
   "records": [
     {"id":"mobius-unitary-positivity","title":"Möbius-Unitary Positivity and Deranged Zero-Orbit Signatures in the Weil-Li Framework","status":"draft","record_path":"records/mobius-unitary-positivity/record.json","manifest_path":"records/mobius-unitary-positivity/manifest.json","distribution_path":"records/mobius-unitary-positivity/distribution.json"},
     {"id":"mobius-weil-li-rh-program","title":"Möbius-Weil-Li Positivity as a Scientific Research Program for the Riemann Hypothesis","status":"draft","record_path":"records/mobius-weil-li-rh-program/record.json","manifest_path":"records/mobius-weil-li-rh-program/manifest.json","distribution_path":"records/mobius-weil-li-rh-program/distribution.json"},
     {"id":"mirror-coupling-dark-sector","title":"The Mirror-Coupling Dark Sector Hypothesis","status":"draft","record_path":"records/mirror-coupling-dark-sector/record.json","manifest_path":"records/mirror-coupling-dark-sector/manifest.json","distribution_path":"records/mirror-coupling-dark-sector/distribution.json"},
-    {"id":"one-unseen-component","title":"Missing Mass or Misunderstood Gravity? A Cross-Scale Case for One Unseen Component","status":"draft","record_path":"records/one-unseen-component/record.json","manifest_path":"records/one-unseen-component/manifest.json","distribution_path":"records/one-unseen-component/distribution.json"}
+    {"id":"one-unseen-component","title":"Missing Mass or Misunderstood Gravity? A Cross-Scale Case for One Unseen Component","status":"draft","record_path":"records/one-unseen-component/record.json","manifest_path":"records/one-unseen-component/manifest.json","distribution_path":"records/one-unseen-component/distribution.json"},
+    {"id":"ethos-aegis","title":"Ethos Aegis","status":"draft","record_path":"records/ethos-aegis/record.json","manifest_path":"records/ethos-aegis/manifest.json","distribution_path":"records/ethos-aegis/distribution.json"},
+    {"id":"nhtqs-dicom","title":"Quantum-Resistant Topological DICOM Architectures","status":"draft","record_path":"records/nhtqs-dicom/record.json","manifest_path":"records/nhtqs-dicom/manifest.json","distribution_path":"records/nhtqs-dicom/distribution.json"},
+    {"id":"aeon-sentinel","title":"AEON Sentinel: A BibLaTeX Manuscript Framework for Auditable Epistemology, Triadic AI Assurance, and Recognitive Spacetime Validation","status":"draft","record_path":"records/aeon-sentinel/record.json","manifest_path":"records/aeon-sentinel/manifest.json","distribution_path":"records/aeon-sentinel/distribution.json"},
+    {"id":"ai-soul-framework-concepts","title":"AI Soul Framework Concepts","status":"draft","record_path":"records/ai-soul-framework-concepts/record.json","manifest_path":"records/ai-soul-framework-concepts/manifest.json","distribution_path":"records/ai-soul-framework-concepts/distribution.json"}
   ]
 }

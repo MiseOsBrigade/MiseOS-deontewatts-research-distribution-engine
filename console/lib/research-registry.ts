@@ -43,17 +43,22 @@ export async function registerResearchMetadata(metadata: UploadMetadata): Promis
       body: JSON.stringify(payload),
     });
 
-    const body = (await response.json().catch(() => ({}))) as {
-      id?: string;
-      message?: string;
-      error?: string;
-    };
+    const raw = await response.text();
+    let body: { id?: string; message?: string; error?: string } = {};
+    if (raw) {
+      try {
+        body = JSON.parse(raw) as typeof body;
+      } catch {
+        body = {};
+      }
+    }
 
     if (!response.ok) {
+      const detail = body.error || body.message || raw.trim().slice(0, 200);
       return {
         configured: true,
         accepted: false,
-        error: body.error || body.message || `Registry returned HTTP ${response.status}.`,
+        error: detail || `Registry returned HTTP ${response.status}.`,
       };
     }
 
