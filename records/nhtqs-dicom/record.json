@@ -1,0 +1,25 @@
+{
+  "id": "nhtqs-dicom",
+  "kind": "publication",
+  "title": "Quantum-Resistant Topological DICOM Architectures",
+  "description": "NHTQS-DICOM is a conceptual research framework for DICOM-compatible medical imaging metadata, post-quantum cryptographic planning, topology-inspired data organization, signed manifests, encrypted workspaces, and provenance-aware verification. It is not a deployed or clinically validated medical system.",
+  "creators": [{"name":"Deonte Watts","orcid":"0009-0005-8586-3650"}],
+  "keywords": ["DICOM","medical imaging","post-quantum cryptography","provenance","topology-inspired data modeling","auditability"],
+  "license": "cc-by-4.0",
+  "publication_type": "technicalnote",
+  "publication_date": "2026-04-01",
+  "access_right": "open",
+  "files": [
+    {"path":"uploads/nhtqs-dicom/NHTQS_DICOM_Manuscript_Source_Package_v1.zip","role":"canonical","bytes":3021573,"sha256":"a43c9a6c763880292855b26526170b3c1f6bc4b78d57015eb011caada4171d3b","attachment_status":"verified-local-pending-transfer"},
+    {"path":"uploads/nhtqs-dicom/NHTQS_DICOM_Manuscript_from_LaTeX_v1.pdf","role":"manuscript","bytes":1704204,"sha256":"31d3bde70f8ea72cebbe1cb2fe8355d17cc06d5d70ff531aacdd609f90ecaf35","attachment_status":"verified-local-pending-transfer"},
+    {"path":"uploads/nhtqs-dicom/NHTQS_DICOM_Manuscript_LaTeX_Source_v1.zip","role":"source","bytes":1607168,"sha256":"258fcd7219136757536f6bdf7dd067ab9fafa5a63ba4438c6e60b879397fddaf","attachment_status":"verified-local-pending-transfer"},
+    {"path":"uploads/nhtqs-dicom/visual-page-4.pdf","role":"supplement","bytes":441924,"sha256":"91271bf7180841254dc86cb0ec20c96d6c92453a9f9bfd02567494b1de1fc27f","attachment_status":"verified-local-pending-transfer"},
+    {"path":"uploads/nhtqs-dicom/visual-pages-2-4.pdf","role":"supplement","bytes":1817367,"sha256":"f49b6071f9708707adf784493c128acc5af76353b98f382396b46aff29512048","attachment_status":"verified-local-pending-transfer"},
+    {"path":"uploads/nhtqs-dicom/visual-title-page.pdf","role":"supplement","bytes":496109,"sha256":"79414b9b9bb8b758c1a220d6eaff4031178be06c6aac71d935bc72827c09524d","attachment_status":"verified-local-pending-transfer"}
+  ],
+  "identifiers": {},
+  "distribution": {"zenodo":{"status":"blocked-pending-binary-transfer","environment":"zenodo-sandbox","published":false},"orcid":{"status":"not-ready","write_back":false}},
+  "status": "draft",
+  "created_at": "2026-07-14T07:45:00.000Z",
+  "updated_at": "2026-07-14T07:45:00.000Z"
+}

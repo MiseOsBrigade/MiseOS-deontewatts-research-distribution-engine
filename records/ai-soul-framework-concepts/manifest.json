@@ -1,0 +1,10 @@
+{
+  "record_id": "ai-soul-framework-concepts",
+  "canonical_file": "uploads/ai-soul-framework-concepts/AI-Soul-Framework-Concepts.pdf",
+  "files": [
+    {"path":"uploads/ai-soul-framework-concepts/AI-Soul-Framework-Concepts.pdf","role":"canonical-manuscript","bytes":2581164,"sha256":"46f7b71a3a7f297106c6039b0f38119874316691732a3cda649f830f444b47f4","source_filename":"AI Soul Framework Concepts(1).pdf"},
+    {"path":"uploads/ai-soul-framework-concepts/AI-Soul-Framework-Concepts-source.txt","role":"source","bytes":19188,"sha256":"707ebf5ed1fdbf2a4fea6fb70d59e42dff8d597168fcf3ebe33ae38c17560c55","source_filename":"AI Soul Framework Concepts(1)"}
+  ],
+  "validated": true,
+  "binary_transfer_complete": false
+}

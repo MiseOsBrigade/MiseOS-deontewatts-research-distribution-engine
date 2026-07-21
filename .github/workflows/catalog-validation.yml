@@ -36,6 +36,8 @@ jobs:
           for file in scripts/*.mjs; do
             [ -f "$file" ] && node --check "$file"
           done
+      - name: Test shared worker utilities
+        run: node --test scripts/*.test.mjs
       - name: Validate JSON and catalog references
         run: |
           files=$(find data records queue schema -name '*.json' -type f 2>/dev/null || true)

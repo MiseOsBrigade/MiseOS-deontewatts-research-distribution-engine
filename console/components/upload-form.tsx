@@ -10,6 +10,12 @@ type Result = {
   sha256?: string;
   bytes?: number;
   commitUrl?: string;
+  registry?: {
+    configured: boolean;
+    accepted: boolean;
+    recordId?: string;
+    error?: string;
+  };
 };
 
 const inputClass = "mt-2 w-full rounded-lg border border-white/10 bg-black/30 p-3 outline-none transition focus:border-cyan-300";
@@ -51,7 +57,8 @@ export function UploadForm() {
         setAccessRight("open");
         setUploadType("publication");
       }
-    } catch {
+    } catch (error) {
+      console.error("Upload request failed:", error);
       setResult({ ok: false, error: "The upload service could not be reached." });
     } finally {
       setBusy(false);
@@ -125,7 +132,7 @@ export function UploadForm() {
       </section>
 
       <button disabled={!canSubmit} className="w-full rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Validating and queuing…" : "Validate and queue master publication"}</button>
-      {result && <div role="status" className={`rounded-xl p-4 text-sm ${result.ok ? "bg-emerald-500/15" : "bg-red-500/15"}`}>{result.ok ? <><p className="font-semibold">Publication queued successfully.</p>{result.recordId && <p>Record: {result.recordId}</p>}<p>Path: {result.uploadPath}</p><p className="break-all">SHA-256: {result.sha256}</p>{result.commitUrl && <p className="mt-2"><a className="underline" href={result.commitUrl} target="_blank" rel="noreferrer">View atomic GitHub commit</a></p>}</> : <p>{result.error}</p>}</div>}
+      {result && <div role="status" className={`rounded-xl p-4 text-sm ${result.ok ? "bg-emerald-500/15" : "bg-red-500/15"}`}>{result.ok ? <><p className="font-semibold">Publication queued successfully.</p>{result.recordId && <p>Record: {result.recordId}</p>}<p>Path: {result.uploadPath}</p><p className="break-all">SHA-256: {result.sha256}</p>{result.commitUrl && <p className="mt-2"><a className="underline" href={result.commitUrl} target="_blank" rel="noreferrer">View atomic GitHub commit</a></p>}{result.registry?.configured && !result.registry.accepted && <p className="mt-2 text-amber-300">External registry sync did not complete: {result.registry.error || "unknown error"}.</p>}</> : <p>{result.error}</p>}</div>}
     </form>
   );
 }
