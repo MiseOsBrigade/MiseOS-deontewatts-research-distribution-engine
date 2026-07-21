@@ -6,12 +6,19 @@ export const INDEX_PATH = "data/research-index.json";
 
 export function readJson(filePath, fallback = null) {
   if (!fs.existsSync(filePath)) return fallback;
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  const raw = fs.readFileSync(filePath, "utf8");
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`Failed to parse JSON from ${filePath}: ${error.message}`);
+  }
 }
 
 export function writeJson(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+  const tempPath = `${filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`);
+  fs.renameSync(tempPath, filePath);
 }
 
 export function slugify(value) {
@@ -19,19 +26,66 @@ export function slugify(value) {
 }
 
 export function createRecordId(title, seed = "") {
-  const digest = crypto.createHash("sha256").update(`${title}\n${seed}`).digest("hex").slice(0, 10);
+  const digest = sha256Content(`${title}\n${seed}`).slice(0, 10);
   return `${new Date().toISOString().slice(0, 10)}-${slugify(title)}-${digest}`;
 }
 
+export function sha256Content(content) {
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
+
 export function sha256(filePath) {
-  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+  return sha256Content(fs.readFileSync(filePath));
+}
+
+export function recordPaths(recordId) {
+  const directory = `records/${recordId}`;
+  return {
+    directory,
+    record: `${directory}/record.json`,
+    manifest: `${directory}/manifest.json`,
+    distribution: `${directory}/distribution.json`
+  };
+}
+
+export function zenodoMetadata(record) {
+  return {
+    title: record.title,
+    upload_type: record.kind === "software" ? "software" : record.kind === "dataset" ? "dataset" : record.upload_type || "publication",
+    ...(record.kind === "publication" ? { publication_type: record.publication_type || "technicalnote" } : {}),
+    publication_date: record.publication_date,
+    description: record.description,
+    creators: record.creators,
+    keywords: record.keywords || [],
+    access_right: record.access_right || "open",
+    license: record.license || "cc-by-4.0",
+    ...(record.version ? { version: record.version } : {}),
+    related_identifiers: record.related_identifiers || []
+  };
+}
+
+// Captures exactly the fields a Zenodo deposit is actually built from (see zenodo-sync.mjs's
+// metadata block) plus the canonical file's checksum, so a production publish can require this
+// to still match what a Sandbox draft was reviewed against - editing the record or swapping the
+// canonical file after the Sandbox sync completed changes the fingerprint and blocks publish
+// until a fresh Sandbox draft is produced and reviewed.
+export function metadataFingerprint(record, canonicalSha256) {
+  const relevant = {
+    ...zenodoMetadata(record),
+    canonical_sha256: canonicalSha256
+  };
+  return sha256Content(JSON.stringify(relevant));
 }
 
 export function upsertIndexRecord(summary) {
   const index = readJson(INDEX_PATH, { schema_version: "1.0.0", updated_at: new Date().toISOString(), records: [] });
   const position = index.records.findIndex((record) => record.id === summary.id);
-  if (position >= 0) index.records[position] = { ...index.records[position], ...summary };
-  else index.records.push(summary);
+  const merged = position >= 0 ? { ...index.records[position], ...summary } : summary;
+  const unchanged = position >= 0 && JSON.stringify(index.records[position]) === JSON.stringify(merged);
+  if (unchanged) return index;
+
+  if (position >= 0) index.records[position] = merged;
+  else index.records.push(merged);
   index.records.sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
   index.updated_at = new Date().toISOString();
   writeJson(INDEX_PATH, index);
@@ -39,6 +93,7 @@ export function upsertIndexRecord(summary) {
 }
 
 export function recordSummary(record) {
+  const paths = recordPaths(record.id);
   return {
     id: record.id,
     kind: record.kind,
@@ -47,8 +102,14 @@ export function recordSummary(record) {
     identifiers: record.identifiers || {},
     source: record.source || {},
     distribution: record.distribution || {},
-    record_path: `records/${record.id}/record.json`,
+    record_path: paths.record,
     created_at: record.created_at,
     updated_at: record.updated_at
   };
+}
+
+export function persistRecord(recordPath, record, distributionPath, distribution = record.distribution) {
+  writeJson(recordPath, record);
+  if (distributionPath) writeJson(distributionPath, distribution);
+  upsertIndexRecord(recordSummary(record));
 }

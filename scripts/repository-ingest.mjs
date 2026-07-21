@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { createRecordId, recordSummary, sha256, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
+import { createRecordId, persistRecord, readJson, recordPaths, sha256, writeJson } from "./catalog-lib.mjs";
 
 const repositoryUrl = process.env.REPOSITORY_URL;
 const checkoutDir = process.env.REPOSITORY_CHECKOUT_DIR || "source-repository";
@@ -8,7 +8,7 @@ const archivePath = process.env.REPOSITORY_ARCHIVE_PATH || "uploads/repository-s
 if (!repositoryUrl) throw new Error("REPOSITORY_URL is required.");
 if (!fs.existsSync(checkoutDir)) throw new Error(`${checkoutDir} does not exist.`);
 if (!fs.existsSync(archivePath)) throw new Error(`${archivePath} does not exist.`);
-const packageJson = fs.existsSync(path.join(checkoutDir, "package.json")) ? JSON.parse(fs.readFileSync(path.join(checkoutDir, "package.json"), "utf8")) : {};
+const packageJson = readJson(path.join(checkoutDir, "package.json"), {});
 const citation = fs.existsSync(path.join(checkoutDir, "CITATION.cff"));
 const name = packageJson.name || path.basename(repositoryUrl.replace(/\.git$/, ""));
 const title = process.env.RESEARCH_TITLE || name;
@@ -18,7 +18,8 @@ const commit = process.env.REPOSITORY_COMMIT || "unknown";
 const version = process.env.REPOSITORY_VERSION || packageJson.version || ref;
 const now = new Date().toISOString();
 const recordId = createRecordId(title, `${repositoryUrl}:${commit}`);
-const targetDir = `records/${recordId}`;
+const paths = recordPaths(recordId);
+const targetDir = paths.directory;
 const targetArchive = `${targetDir}/${path.basename(archivePath)}`;
 fs.mkdirSync(targetDir, { recursive: true });
 fs.copyFileSync(archivePath, targetArchive);
@@ -40,9 +41,7 @@ const record = {
   created_at: now,
   updated_at: now
 };
-writeJson(`${targetDir}/record.json`, record);
-writeJson(`${targetDir}/distribution.json`, record.distribution);
-writeJson(`${targetDir}/manifest.json`, { record_id: recordId, files: record.files });
-upsertIndexRecord(recordSummary(record));
-writeJson("queue/current.json", { schema_version: "1.0.0", record_id: recordId, metadata_path: `${targetDir}/record.json`, files: [targetArchive], environment: "zenodo-sandbox", status: "queued", queued_at: now });
+persistRecord(paths.record, record, paths.distribution);
+writeJson(paths.manifest, { record_id: recordId, files: record.files });
+writeJson("queue/current.json", { schema_version: "1.0.0", record_id: recordId, metadata_path: paths.record, files: [targetArchive], environment: "zenodo-sandbox", status: "queued", queued_at: now });
 console.log(JSON.stringify({ record_id: recordId, targetArchive }, null, 2));
