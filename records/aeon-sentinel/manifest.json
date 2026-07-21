@@ -1,0 +1,9 @@
+{
+  "record_id": "aeon-sentinel",
+  "canonical_file": "uploads/aeon-sentinel/main-2.pdf",
+  "files": [
+    {"path":"uploads/aeon-sentinel/main-2.pdf","role":"canonical-manuscript","bytes":357834,"sha256":"b5d30f3c06a7216d72026f69459d40dee0a3963fe4573d129ac7254cfa5ec814","source_filename":"main 2(1).pdf"}
+  ],
+  "validated": true,
+  "binary_transfer_complete": false
+}

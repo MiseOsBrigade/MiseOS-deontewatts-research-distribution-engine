@@ -1,0 +1,18 @@
+{
+  "id": "aeon-sentinel",
+  "kind": "publication",
+  "title": "AEON Sentinel: A BibLaTeX Manuscript Framework for Auditable Epistemology, Triadic AI Assurance, and Recognitive Spacetime Validation",
+  "description": "A reproducible research scaffold for evidence-linked AI assurance, epistemic drift analysis, triadic attestation, Bayesian decision dossiers, and recognitive state-transition analysis. Demonstration thresholds and metrics are research priors rather than validated operational cutoffs.",
+  "creators": [{"name":"Deonte Watts","orcid":"0009-0005-8586-3650"}],
+  "keywords": ["AI assurance","epistemic drift","Bayesian decision dossier","provenance","recognitive equation framework"],
+  "license": "cc-by-4.0",
+  "publication_type": "technicalnote",
+  "publication_date": "2026-05-08",
+  "access_right": "open",
+  "files": [{"path":"uploads/aeon-sentinel/main-2.pdf","role":"canonical-manuscript","bytes":357834,"sha256":"b5d30f3c06a7216d72026f69459d40dee0a3963fe4573d129ac7254cfa5ec814","attachment_status":"verified-local-pending-transfer"}],
+  "identifiers": {},
+  "distribution": {"zenodo":{"status":"blocked-pending-binary-transfer","environment":"zenodo-sandbox","published":false},"orcid":{"status":"not-ready","write_back":false}},
+  "status": "draft",
+  "created_at": "2026-07-14T07:45:00.000Z",
+  "updated_at": "2026-07-14T07:45:00.000Z"
+}

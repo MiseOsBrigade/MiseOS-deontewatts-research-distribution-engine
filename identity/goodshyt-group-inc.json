@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0.0",
+  "entity_type": "organization",
+  "legal_name": "GoodShyt Group Inc.",
+  "display_name": "GoodShyt Group",
+  "relationship_to_creator": {
+    "person_name": "Deonte Watts",
+    "orcid": "0009-0005-8586-3650",
+    "relationship": "founder_owner_and_research_affiliation"
+  },
+  "identifiers": {
+    "isni": "0000000530299848",
+    "ringgold_id": "850902"
+  },
+  "assertion": {
+    "status": "owner_asserted",
+    "asserted_by": "Deonte Watts",
+    "asserted_on": "2026-07-16",
+    "external_registry_verification": "not_independently_verified_in_this_repository"
+  },
+  "usage": [
+    "research affiliation",
+    "organizational provenance",
+    "portfolio aggregation",
+    "scholarly metadata",
+    "comprehensive work catalog"
+  ]
+}
