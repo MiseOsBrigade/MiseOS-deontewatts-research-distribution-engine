@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { metadataFingerprint, readJson, recordSummary, sha256, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
+import { metadataFingerprint, persistRecord, readJson, recordPaths, sha256, writeJson } from "./catalog-lib.mjs";
 
 const PENDING_PATH = "queue/pending.json";
 const CURRENT_PATH = "queue/current.json";
@@ -15,9 +15,7 @@ function notReady(message) {
 }
 
 function verifyCanonicalFile(entry) {
-  const recordPath = `records/${entry.record_id}/record.json`;
-  const manifestPath = `records/${entry.record_id}/manifest.json`;
-  const distributionPath = `records/${entry.record_id}/distribution.json`;
+  const { record: recordPath, manifest: manifestPath, distribution: distributionPath } = recordPaths(entry.record_id);
   if (![recordPath, manifestPath, distributionPath].every((filePath) => fs.existsSync(filePath))) return null;
 
   const manifest = readJson(manifestPath);
@@ -79,8 +77,7 @@ function writePromotion(promotion, pending) {
 
   const record = readJson(recordPath);
   record.updated_at = now;
-  writeJson(recordPath, record);
-  upsertIndexRecord(recordSummary(record));
+  persistRecord(recordPath, record);
 
   // require_manifest_validation is satisfied per-file, not just for the canonical entry that
   // verifyCanonicalFile already checked - persist that back so the manifest accurately reflects

@@ -3,9 +3,16 @@
 Version: **0.1.0**  
 Release date: **2026-07-13**  
 Author: **Deonte Watts**  
-ORCID: **0009-0005-8586-3650**
+ORCID: **0009-0005-8586-3650**  
+Research affiliation: **GoodShyt Group Inc.**  
+Organization ISNI: **0000000530299848**  
+Organization Ringgold ID: **850902**
 
 A three-manuscript research package examining the conjecture that a hidden-sector gauge coupling may satisfy `alpha_D ~ alpha` while remaining consistent with dark-matter cosmology, velocity-dependent self-interaction, and dark-sector structure.
+
+## Identity and provenance
+
+Deonte Watts identifies GoodShyt Group Inc. as the organizational home and research affiliation for this body of work. The ISNI and Ringgold identifiers above are recorded as owner-asserted organizational identifiers. Their machine-readable provenance record is stored at `identity/goodshyt-group-inc.json`.
 
 ## Scientific status
 
