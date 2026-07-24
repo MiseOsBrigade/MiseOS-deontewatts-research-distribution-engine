@@ -1,4 +1,5 @@
-import { persistRecord, readJson, recordPaths, writeJson } from "./catalog-lib.mjs";
+import fs from "node:fs";
+import { readJson, recordSummary, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
 
 const orcid = process.env.ORCID_ID || "0009-0005-8586-3650";
 const base = (process.env.ORCID_API_BASE || "https://pub.orcid.org/v3.0").replace(/\/$/, "");
@@ -52,16 +53,18 @@ for (const summary of summaries) {
 
   record.distribution = { ...(record.distribution || {}), orcid: orcidState };
   record.updated_at = report.analyzed_at;
-  const distribution = {
+  writeJson(summary.record_path, record);
+  writeJson(`records/${record.id}/distribution.json`, {
     record_id: record.id,
     publication_enabled: Boolean(record.distribution?.zenodo?.published),
     zenodo: record.distribution?.zenodo || {},
     orcid: orcidState,
     updated_at: report.analyzed_at,
-  };
-  persistRecord(summary.record_path, record, recordPaths(record.id).distribution, distribution);
+  });
+  upsertIndexRecord(recordSummary(record));
   report.records.push({ id: record.id, title: record.title, status, matched_put_code: match?.put_code || null });
 }
 
+fs.mkdirSync("reports", { recursive: true });
 writeJson("reports/orcid-analysis.json", report);
 console.log(JSON.stringify(report, null, 2));

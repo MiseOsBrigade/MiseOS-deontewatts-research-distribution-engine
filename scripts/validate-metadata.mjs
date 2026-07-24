@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import { readJson, zenodoMetadata } from "./catalog-lib.mjs";
 
 // Validate whichever record is actually staged for sync (queue/current.json.metadata_path),
 // so a real backlog record's records/<id>/record.json gets the same required-field check as
@@ -7,7 +6,7 @@ import { readJson, zenodoMetadata } from "./catalog-lib.mjs";
 // file that's unrelated to the record actually being synced once a real backlog item is
 // promoted. Fall back to metadata/research.json for standalone use before anything is queued.
 const queueExists = fs.existsSync("queue/current.json");
-const queue = queueExists ? readJson("queue/current.json") : null;
+const queue = queueExists ? JSON.parse(fs.readFileSync("queue/current.json", "utf8")) : null;
 if (queueExists && !queue?.metadata_path) {
   console.error("queue/current.json exists but is missing metadata_path.");
   process.exit(1);
@@ -28,12 +27,16 @@ if (!fs.existsSync(path)) {
   process.exit(1);
 }
 
-const raw = readJson(path);
+const raw = JSON.parse(fs.readFileSync(path, "utf8"));
 // zenodo-sync.mjs derives upload_type from record.kind and defaults access_right to "open" when
 // they're absent, so a backlog record shouldn't fail validation for omitting exactly the two
 // fields the sync step already knows how to fill in. publication_date has no safe default -
 // Zenodo requires it verbatim, so it stays a hard requirement.
-const metadata = zenodoMetadata(raw);
+const metadata = {
+  ...raw,
+  upload_type: raw.kind === "software" ? "software" : raw.kind === "dataset" ? "dataset" : raw.upload_type || "publication",
+  access_right: raw.access_right || "open"
+};
 const missing = required.filter((field) => {
   const value = metadata[field];
   return value === undefined || value === null || value === "";

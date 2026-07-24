@@ -1,4 +1,4 @@
-import { persistRecord, readJson, recordPaths } from "./catalog-lib.mjs";
+import { readJson, recordSummary, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
 
 if (process.env.ORCID_WRITE_ENABLED !== "true") {
   console.log("ORCID write-back is disabled. Set ORCID_WRITE_ENABLED=true only after Member API authorization.");
@@ -24,5 +24,7 @@ for (const summary of index.records || []) {
   if (!response.ok) throw new Error(`ORCID write failed for ${record.id}: ${response.status} ${await response.text()}`);
   record.distribution.orcid = { status: "present", added_by: "research-distribution-engine", location: response.headers.get("location"), updated_at: new Date().toISOString() };
   record.updated_at = new Date().toISOString();
-  persistRecord(summary.record_path, record, recordPaths(record.id).distribution);
+  writeJson(summary.record_path, record);
+  writeJson(`records/${record.id}/distribution.json`, record.distribution);
+  upsertIndexRecord(recordSummary(record));
 }

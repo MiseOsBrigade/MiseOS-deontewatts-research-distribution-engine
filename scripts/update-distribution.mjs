@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { metadataFingerprint, persistRecord, readJson, recordPaths, sha256, writeJson } from "./catalog-lib.mjs";
+import { metadataFingerprint, readJson, recordSummary, sha256, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
 
 const resultPath = process.argv[2] || "dist/zenodo-result.json";
 const queue = readJson("queue/current.json");
@@ -7,9 +7,8 @@ const result = readJson(resultPath);
 if (!queue?.record_id) throw new Error("queue/current.json is missing record_id.");
 if (!result) throw new Error(`${resultPath} is missing.`);
 
-const paths = recordPaths(queue.record_id);
-const recordPath = queue.metadata_path || paths.record;
-const distributionPath = queue.distribution_path || paths.distribution;
+const recordPath = queue.metadata_path || `records/${queue.record_id}/record.json`;
+const distributionPath = queue.distribution_path || `records/${queue.record_id}/distribution.json`;
 const record = readJson(recordPath);
 if (!record) throw new Error(`${recordPath} is missing.`);
 
@@ -45,14 +44,15 @@ record.identifiers = {
 record.status = zenodo.status === "failed" ? "sync-failed" : zenodo.published ? "published" : "zenodo-draft";
 record.updated_at = now;
 
-const distribution = {
+writeJson(recordPath, record);
+writeJson(distributionPath, {
   record_id: record.id,
   publication_enabled: Boolean(zenodo.published),
   zenodo,
   orcid: record.distribution?.orcid || { status: "blocked-until-reserved-doi", write_back_enabled: false, approval_required: true },
   updated_at: now,
-};
-persistRecord(recordPath, record, distributionPath, distribution);
+});
+upsertIndexRecord(recordSummary(record));
 writeJson("queue/current.json", {
   ...queue,
   status: zenodo.status,

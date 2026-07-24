@@ -1,5 +1,9 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
-import { readJson, sha256 } from "./catalog-lib.mjs";
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
 
 const queue = readJson("queue/current.json");
 if (!queue.record_id || !queue.metadata_path || !queue.manifest_path || !queue.distribution_path) {
@@ -25,7 +29,7 @@ if (record.id !== queue.record_id || manifest.record_id !== queue.record_id) {
 for (const filePath of queue.files) {
   const expected = (manifest.files || []).find((entry) => entry.path === filePath);
   if (!expected?.sha256) throw new Error(`Manifest checksum is missing for ${filePath}`);
-  const actual = sha256(filePath);
+  const actual = crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
   if (actual !== expected.sha256) throw new Error(`Checksum mismatch for ${filePath}`);
 }
 
