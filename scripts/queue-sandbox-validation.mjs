@@ -1,12 +1,13 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { persistRecord, readJson, recordPaths, sha256Content, writeJson } from "./catalog-lib.mjs";
+import { readJson, recordSummary, upsertIndexRecord, writeJson } from "./catalog-lib.mjs";
 
 const RECORD_ID = "zenodo-sandbox-validation";
 const uploadDirectory = "uploads";
 const outputPath = path.join(uploadDirectory, "zenodo-sandbox-validation.bin");
 const metadataPath = "metadata/research.json";
-const paths = recordPaths(RECORD_ID);
+const recordDirectory = `records/${RECORD_ID}`;
 
 const existingQueue = readJson("queue/current.json");
 if (existingQueue && !existingQueue.processed_at) {
@@ -23,9 +24,9 @@ for (let index = 0; index < payload.length; index += 1) {
 
 const binary = Buffer.concat([header, payload]);
 fs.writeFileSync(outputPath, binary);
-const fileSha256 = sha256Content(binary);
+const fileSha256 = crypto.createHash("sha256").update(binary).digest("hex");
 
-const existing = readJson(metadataPath);
+const existing = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
 const publicationDate = new Date().toISOString().slice(0, 10);
 const realNow = new Date().toISOString();
 
@@ -33,7 +34,7 @@ const realNow = new Date().toISOString();
 // run that reaches this point is a genuine new event (first queuing, or a deliberate re-queue
 // after the prior one finished) and should get the real current time. Only created_at, the
 // record's original creation time, should survive across runs.
-const existingRecord = readJson(paths.record);
+const existingRecord = readJson(`${recordDirectory}/record.json`);
 const createdAt = existingRecord?.created_at ?? realNow;
 const now = realNow;
 const metadata = {
@@ -62,7 +63,7 @@ const metadata = {
   related_identifiers: []
 };
 
-writeJson(metadataPath, metadata);
+fs.writeFileSync(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`);
 
 const record = {
   id: RECORD_ID,
@@ -93,27 +94,28 @@ const record = {
   updated_at: now
 };
 
-writeJson(paths.manifest, {
+writeJson(`${recordDirectory}/record.json`, record);
+writeJson(`${recordDirectory}/manifest.json`, {
   record_id: RECORD_ID,
   state: "draft",
   files: record.files,
   validated: false
 });
-const distribution = {
+writeJson(`${recordDirectory}/distribution.json`, {
   record_id: RECORD_ID,
   publication_enabled: false,
   zenodo: { status: "queued", environment: "zenodo-sandbox" },
   orcid: { status: "blocked-until-reserved-doi", write_back_enabled: false, approval_required: true },
   updated_at: now
-};
-persistRecord(paths.record, record, paths.distribution, distribution);
+});
+upsertIndexRecord(recordSummary(record));
 
 writeJson("queue/current.json", {
   schema_version: "1.0.0",
   record_id: RECORD_ID,
-  metadata_path: paths.record,
-  manifest_path: paths.manifest,
-  distribution_path: paths.distribution,
+  metadata_path: `${recordDirectory}/record.json`,
+  manifest_path: `${recordDirectory}/manifest.json`,
+  distribution_path: `${recordDirectory}/distribution.json`,
   files: [outputPath],
   environment: "zenodo-sandbox",
   publish: false,
@@ -128,7 +130,7 @@ console.log(
       bytes: binary.length,
       sha256: fileSha256,
       metadata: metadataPath,
-      record: paths.record,
+      record: `${recordDirectory}/record.json`,
       queue: "queue/current.json",
       publication_date: publicationDate
     },
