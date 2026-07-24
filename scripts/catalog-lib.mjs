@@ -6,12 +6,7 @@ export const INDEX_PATH = "data/research-index.json";
 
 export function readJson(filePath, fallback = null) {
   if (!fs.existsSync(filePath)) return fallback;
-  const raw = fs.readFileSync(filePath, "utf8");
-  try {
-    return JSON.parse(raw);
-  } catch (error) {
-    throw new Error(`Failed to parse JSON from ${filePath}: ${error.message}`);
-  }
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
 export function writeJson(filePath, value) {
